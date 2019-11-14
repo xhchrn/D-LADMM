@@ -37,8 +37,8 @@ class DLADMMNet(nn.Module):
             self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
 
-        self.active_para = torch.tensor(0.025, dtype=torch.float32)
-        self.active_para1 = torch.tensor(0.06, dtype=torch.float32)
+        self.active_para = torch.tensor(0.025, dtype=torch.float32).cuda()
+        self.active_para1 = torch.tensor(0.06, dtype=torch.float32).cuda()
 
 
 
@@ -105,7 +105,7 @@ class DLADMMNet(nn.Module):
 # other functions
 def trans2image(img):
 	# img 256 x 1024
-	img = img.cpu().data.numpy()
+	# img = img.cpu().data.numpy()
 	new_img = np.zeros([512, 512])
 	count = 0
 	for ii in range(0, 512, 16):
@@ -196,11 +196,14 @@ criterion = nn.MSELoss()
 index_loc = np.arange(10000)
 ts_index_loc = np.arange(1000)
 psnr_value = 0
-best_pic = torch.zeros(256,1024)
+best_pic = np.zeros(shape=(256,1024))
+optimizer = None
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
+    # model.train()
     learning_rate =  0.0002 * 0.5 ** (epoch // 30)
     print('learning rate of this epoch {:.8f}'.format(learning_rate))
+    # del optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     np.random.shuffle(index_loc)
     for j in range(n//batch_size):
@@ -208,7 +211,8 @@ for epoch in range(num_epoch):
         address = index_loc[np.arange(j*batch_size,(j+1)*batch_size)]
         input_bs = X[:, address]
         input_bs = torch.from_numpy(input_bs)
-        input_bs_var = torch.autograd.Variable(input_bs.cuda())
+        # input_bs_var = torch.autograd.Variable(input_bs.cuda())
+        input_bs_var = input_bs.cuda()
         [Z, E, L] = model(input_bs_var)
 
         loss = list()
@@ -228,34 +232,43 @@ for epoch in range(num_epoch):
                 print('loss{}:{:.3f}'.format(k + 1, loss[k]), end=' ')
             print(" ")
 
+    # del loss, total_loss
+
     torch.save(model.state_dict(), model.name())
 
     print('---------------------------testing---------------------------')
-    mse_value = torch.zeros(layers)
+    # model.eval()
+    mse_value = torch.zeros(layers).cuda()
     for j in range(n_test//batch_size):
         input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
         input_bs = torch.from_numpy(input_bs)
-        input_bs_var = torch.autograd.Variable(input_bs.cuda())
+        # input_bs_var = torch.autograd.Variable(input_bs.cuda())
+        input_bs_var = input_bs.cuda()
         [Z, E, L] = model(input_bs_var)
 
         input_gt = X_gt[:, j*batch_size:(j+1)*batch_size]
         input_gt = torch.from_numpy(input_gt)
-        input_gt_var = torch.autograd.Variable(input_gt.cuda())
+        # input_gt_var = torch.autograd.Variable(input_gt.cuda())
+        input_gt_var = input_gt.cuda()
 
         for jj in range(layers):
+            # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
             mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
+            # mse_value[jj] = mse_value[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
 
     mse_value = mse_value / (n_test//batch_size)
-    psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131)
+    # print(mse_value)
+    psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131).cuda()
     for jj in range(layers):
         if(psnr_value < psnr[jj]):
-            psnr_value = psnr[jj]
+            psnr_value = psnr[jj].cpu().item()
             for jjj in range(n_test//batch_size):
                 input_bs = X_ts[:, jjj*batch_size:(jjj+1)*batch_size]
                 input_bs = torch.from_numpy(input_bs)
-                input_bs_var = torch.autograd.Variable(input_bs.cuda())
+                # input_bs_var = torch.autograd.Variable(input_bs.cuda())
+                input_bs_var = input_bs.cuda()
                 [Z, E, L] = model(input_bs_var)
-                best_pic[:, jjj*batch_size:(jjj+1)*batch_size] = 255* torch.mm(A_tensor, Z[jj])
+                best_pic[:, jjj*batch_size:(jjj+1)*batch_size] = (255* torch.mm(A_tensor, Z[jj])).cpu().data.numpy()
     # print('==>>> epoch: {}, psnr1: {:.6f}'.format(epoch, psnr[0]))
     print('==>> epoch: {}'.format(epoch))
     for k in range(layers):
@@ -267,5 +280,5 @@ for epoch in range(num_epoch):
     img = trans2image(best_pic)
     scipy.misc.imsave('lena_01.jpg', img)
 
-
+    torch.cuda.empty_cache()
 
