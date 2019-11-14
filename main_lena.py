@@ -189,7 +189,7 @@ model = DLADMMNet(m=m, n=n, d=d, batch_size=batch_size, A=A_tensor, Z0=Z0, E0=E0
 A_tensor = A_tensor.cuda()
 if use_cuda:
     model = model.cuda()
-model = nn.DataParallel(model, device_ids=device_ids)
+# model = nn.DataParallel(model, device_ids=device_ids)
 print(model)
 
 criterion = nn.MSELoss()
