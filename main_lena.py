@@ -149,6 +149,7 @@ def dual_gap(x, alpha):
 
 np.random.seed(1126)
 # os.environ["CUDA_VISIBLE_DEVICES"]="7"
+device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
 m, d, n = 256, 512, 10000
 n_test = 1024
 batch_size = 20
@@ -188,7 +189,7 @@ model = DLADMMNet(m=m, n=n, d=d, batch_size=batch_size, A=A_tensor, Z0=Z0, E0=E0
 A_tensor = A_tensor.cuda()
 if use_cuda:
     model = model.cuda()
-model = nn.DataParallel(model)
+model = nn.DataParallel(model, device_ids=[0,1])
 print(model)
 
 criterion = nn.MSELoss()
