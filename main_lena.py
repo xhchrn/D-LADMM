@@ -157,6 +157,7 @@ alpha = 0.45
 num_epoch = 100
 
 use_cuda = torch.cuda.is_available()
+print('==>>> use cuda' if use_cuda else '==>>> use cpu')
 print('==>>> batch size: {}'.format(batch_size))
 print('==>>> total trainning batch number: {}'.format(n//batch_size))
 print('==>>> total testing batch number: {}'.format(n_test//batch_size))
