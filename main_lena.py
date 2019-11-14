@@ -46,13 +46,13 @@ class DLADMMNet(nn.Module):
             if isinstance(m, nn.Linear):
                 #nn.init.kaiming_normal_(m.weight, mode='fan_out')
                 #m.weight.data.normal_(0, 1/20)
-                m.weight = torch.nn.Parameter(self.A.t() + (1e-3)*torch.randn_like(self.A.t())) 
+                m.weight = torch.nn.Parameter(self.A.t() + (1e-3)*torch.randn_like(self.A.t()))
                 #m.weight = torch.nn.Parameter(self.A.t())
 
     def self_active(self, x, thershold):
         return F.relu(x - thershold) - F.relu(-1.0 * x - thershold)
 
-              
+
 
     def forward(self, x):
         #X = x.view(-1, 28*28)
@@ -94,10 +94,10 @@ class DLADMMNet(nn.Module):
                 # L2 = L1 + self.beta2_1.mul(T3)
 
 
-     
+
         return Z, E, L
 
-  
+
     def name(self):
         return "DLADMMNet"
 
@@ -143,12 +143,12 @@ def calc_PSNR(x1, x2):
 	return psnr
 
 def dual_gap(x, alpha):
-    out = F.softplus(x - alpha) + F.softplus(- x - alpha) 
+    out = F.softplus(x - alpha) + F.softplus(- x - alpha)
     return out
 
 
 np.random.seed(1126)
-os.environ["CUDA_VISIBLE_DEVICES"]="7"
+# os.environ["CUDA_VISIBLE_DEVICES"]="7"
 m, d, n = 256, 512, 10000
 n_test = 1024
 batch_size = 20
@@ -187,6 +187,7 @@ model = DLADMMNet(m=m, n=n, d=d, batch_size=batch_size, A=A_tensor, Z0=Z0, E0=E0
 A_tensor = A_tensor.cuda()
 if use_cuda:
     model = model.cuda()
+model = nn.DataParallel(model)
 print(model)
 
 criterion = nn.MSELoss()
@@ -206,7 +207,7 @@ for epoch in range(num_epoch):
         input_bs = X[:, address]
         input_bs = torch.from_numpy(input_bs)
         input_bs_var = torch.autograd.Variable(input_bs.cuda())
-        [Z, E, L] = model(input_bs_var) 
+        [Z, E, L] = model(input_bs_var)
 
         loss = list()
         total_loss = 0
@@ -263,6 +264,6 @@ for epoch in range(num_epoch):
     # save recovered image
     img = trans2image(best_pic)
     scipy.misc.imsave('lena_01.jpg', img)
-    
+
 
 
