@@ -150,11 +150,11 @@ def dual_gap(x, alpha):
 np.random.seed(1126)
 # os.environ["CUDA_VISIBLE_DEVICES"]="7"
 device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
-m, d, n = 256, 512, 10000
-n_test = 1024
+m, d, n = 250, 500, 10000
+n_test = 1000
 batch_size = 20
-layers = 15
-alpha = 0.45
+layers = 20
+alpha = 0.5
 num_epoch = 100
 
 use_cuda = torch.cuda.is_available()
@@ -163,18 +163,18 @@ print('==>>> batch size: {}'.format(batch_size))
 print('==>>> total trainning batch number: {}'.format(n//batch_size))
 print('==>>> total testing batch number: {}'.format(n_test//batch_size))
 
-img_data = sio.loadmat('lena_pepper_01.mat')
-A_ori = img_data['A']
+syn_data = sio.loadmat('syn_data.mat')
+A_ori = syn_data['A']
 A_ori = A_ori.astype(np.float32) #*(1.0/18.0)
 
-X = img_data['train_x'].astype(np.float32)
+X = syn_data['train_x'].astype(np.float32)
 X = X.T
 
-X_ts = img_data['test_x'].astype(np.float32)
+X_ts = syn_data['test_x'].astype(np.float32)
 X_ts = X_ts.T
 
-X_gt = img_data['gt_x'].astype(np.float32)
-X_gt = X_gt.T
+# X_gt = syn_data['gt_x'].astype(np.float32)
+# X_gt = X_gt.T
 
 
 # init parameters
@@ -197,8 +197,8 @@ print(model)
 criterion = nn.MSELoss()
 index_loc = np.arange(10000)
 ts_index_loc = np.arange(1000)
-psnr_value = 0
-best_pic = np.zeros(shape=(256,1024))
+# psnr_value = 0
+# best_pic = np.zeros(shape=(256,1024))
 optimizer = None
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
@@ -220,13 +220,10 @@ for epoch in range(num_epoch):
         loss = list()
         total_loss = 0
 
-        for k in range(layers):
+        for k in range(layers-1, layers):
             loss.append(
                 alpha * torch.mean(torch.abs(Z[k])) +
-                torch.mean(torch.abs(E[k])) +
-                torch.mean(dual_gap(torch.mm(A_tensor.t(), L[k]), alpha)) +
-                torch.mean(dual_gap(L[k], 1)) +
-                torch.mean(L[k] * input_bs_var)
+                torch.mean(torch.abs(E[k]))
             )
 
             total_loss = total_loss + loss[-1]
@@ -254,39 +251,41 @@ for epoch in range(num_epoch):
         input_bs_var = input_bs.cuda()
         [Z, E, L] = model(input_bs_var)
 
-        input_gt = X_gt[:, j*batch_size:(j+1)*batch_size]
-        input_gt = torch.from_numpy(input_gt)
-        # input_gt_var = torch.autograd.Variable(input_gt.cuda())
-        input_gt_var = input_gt.cuda()
+        # input_gt = X_gt[:, j*batch_size:(j+1)*batch_size]
+        # input_gt = torch.from_numpy(input_gt)
+        # # input_gt_var = torch.autograd.Variable(input_gt.cuda())
+        # input_gt_var = input_gt.cuda()
 
         for jj in range(layers):
             # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
-            mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
+            # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
             # mse_value[jj] = mse_value[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
+            mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[k])) + torch.mean(torch.abs(E[k])))
 
     mse_value = mse_value / (n_test//batch_size)
     # print(mse_value)
-    psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131).cuda()
-    for jj in range(layers):
-        if(psnr_value < psnr[jj]):
-            psnr_value = psnr[jj].cpu().item()
-            for jjj in range(n_test//batch_size):
-                input_bs = X_ts[:, jjj*batch_size:(jjj+1)*batch_size]
-                input_bs = torch.from_numpy(input_bs)
-                # input_bs_var = torch.autograd.Variable(input_bs.cuda())
-                input_bs_var = input_bs.cuda()
-                [Z, E, L] = model(input_bs_var)
-                best_pic[:, jjj*batch_size:(jjj+1)*batch_size] = (255* torch.mm(A_tensor, Z[jj])).cpu().data.numpy()
+    # psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131).cuda()
+    # for jj in range(layers):
+        # if(psnr_value < psnr[jj]):
+            # psnr_value = psnr[jj].cpu().item()
+            # for jjj in range(n_test//batch_size):
+                # input_bs = X_ts[:, jjj*batch_size:(jjj+1)*batch_size]
+                # input_bs = torch.from_numpy(input_bs)
+                # # input_bs_var = torch.autograd.Variable(input_bs.cuda())
+                # input_bs_var = input_bs.cuda()
+                # [Z, E, L] = model(input_bs_var)
+                # best_pic[:, jjj*batch_size:(jjj+1)*batch_size] = (255* torch.mm(A_tensor, Z[jj])).cpu().data.numpy()
     # print('==>>> epoch: {}, psnr1: {:.6f}'.format(epoch, psnr[0]))
     print('==>> epoch: {}'.format(epoch))
     for k in range(layers):
-                print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        print('Loss{}:{:.3f}'.format(k+1, mse_value[k]), end=' ')
     print(" ")
-    print('******Best PSNR:{:.3f}'.format(psnr_value))
+    # print('******Best PSNR:{:.3f}'.format(psnr_value))
 
     # save recovered image
-    img = trans2image(best_pic)
-    scipy.misc.imsave('lena_01.jpg', img)
+    # img = trans2image(best_pic)
+    # scipy.misc.imsave('lena_01.jpg', img)
 
     torch.cuda.empty_cache()
 
