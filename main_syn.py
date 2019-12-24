@@ -164,8 +164,8 @@ print('==>>> total trainning batch number: {}'.format(n//batch_size))
 print('==>>> total testing batch number: {}'.format(n_test//batch_size))
 
 img_data = sio.loadmat('lena_pepper_01.mat')
-A_ori = img_data['D']
-A_ori = A_ori.astype(np.float32)#*(1.0/18.0)
+A_ori = img_data['A']
+A_ori = A_ori.astype(np.float32) #*(1.0/18.0)
 
 X = img_data['train_x'].astype(np.float32)
 X = X.T
@@ -185,7 +185,9 @@ A_tensor = torch.from_numpy(A_ori)
 
 
 
-model = DLADMMNet(m=m, n=n, d=d, batch_size=batch_size, A=A_tensor, Z0=Z0, E0=E0, L0=L0, layers=layers)
+model = DLADMMNet(
+    m=m, n=n, d=d, batch_size=batch_size, A=A_tensor,
+    Z0=Z0, E0=E0, L0=L0, layers=layers)
 A_tensor = A_tensor.cuda()
 if use_cuda:
     model = model.cuda()
