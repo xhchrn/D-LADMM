@@ -14,7 +14,7 @@ if __name__ == "__main__":
     test_size = 1000
     p = 0.1
     mu = 0.0
-    scale = 1.0
+    sigma = 1.0
     # bernoulli
     bern_train = np.random.binomial(size=[train_size, n], n=1, p=p)
     bern_test = np.random.binomial(size=[test_size, n], n=1, p=p)
