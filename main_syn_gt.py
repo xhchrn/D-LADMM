@@ -170,8 +170,20 @@ A_ori = A_ori.astype(np.float32) #*(1.0/18.0)
 X = syn_data['train_x'].astype(np.float32)
 X = X.T
 
+Z_tr = syn_data['train_z'].astype(np.float32)
+Z_tr = Z.T
+
+E_tr = syn_data['train_e'].astype(np.float32)
+E_tr = E.T
+
 X_ts = syn_data['test_x'].astype(np.float32)
 X_ts = X_ts.T
+
+Z_ts = syn_data['test_z'].astype(np.float32)
+Z_ts = Z_ts.T
+
+E_ts = syn_data['test_e'].astype(np.float32)
+E_ts = E_ts.T
 
 # X_gt = syn_data['gt_x'].astype(np.float32)
 # X_gt = X_gt.T
@@ -182,8 +194,6 @@ Z0 = 1.0 /d * torch.rand(d, batch_size, dtype=torch.float32)
 E0 = torch.zeros(m, batch_size, dtype=torch.float32)
 L0 = torch.zeros(m, batch_size, dtype=torch.float32)
 A_tensor = torch.from_numpy(A_ori)
-
-
 
 model = DLADMMNet(
     m=m, n=n, d=d, batch_size=batch_size, A=A_tensor,
@@ -227,8 +237,10 @@ for epoch in range(num_epoch):
                 continue
 
             loss.append(
-                alpha * torch.mean(torch.abs(Z[k])) +
-                torch.mean(torch.abs(E[k]))
+                # alpha * torch.mean(torch.abs(Z[k])) +
+                # torch.mean(torch.abs(E[k]))
+                torch.sum((Z[k] - Z_tr[:, address])**2.0) +
+                torch.sum((E[k] - E-tr[:, address])**2.0)
             )
 
             total_loss = total_loss + loss[-1]
@@ -248,7 +260,9 @@ for epoch in range(num_epoch):
 
     print('---------------------------testing---------------------------')
     # model.eval()
-    mse_value = torch.zeros(layers).cuda()
+    # mse_value = torch.zeros(layers).cuda()
+    mse_z = torch.zeros(layers).cuda()
+    mse_e = torch.zeros(layers).cuda()
     for j in range(n_test//batch_size):
         input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
         input_bs = torch.from_numpy(input_bs)
@@ -265,14 +279,23 @@ for epoch in range(num_epoch):
             # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
             # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
             # mse_value[jj] = mse_value[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
-            mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
+            Z_label_bs = Z_ts[:, j*batch_size:(j+1)*batch_size]
+            E_label_bs = E_ts[:, j*batch_size:(j+1)*batch_size]
+            # mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
+            mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
+            mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
 
-    mse_value = mse_value / (n_test//batch_size)
+    mse_z = mse_z / n_test
+    mse_e = mse_e / n_test
+    nmse_denom_z = torch.sum(Z_ts ** 2.0) / n_test
+    nmse_denom_e = torch.sum(E_ts ** 2.0) / n_test
+    nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
+    nmse_value = 10.0
     # print(mse_value)
     # psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131).cuda()
-    # for jj in range(layers):
-        # if(psnr_value < psnr[jj]):
-            # psnr_value = psnr[jj].cpu().item()
+    for jj in range(layers):
+        if(nmse[jj] < nmse_value):
+            nmse_value = nmse[jj].cpu().item()
             # for jjj in range(n_test//batch_size):
                 # input_bs = X_ts[:, jjj*batch_size:(jjj+1)*batch_size]
                 # input_bs = torch.from_numpy(input_bs)
@@ -280,13 +303,13 @@ for epoch in range(num_epoch):
                 # input_bs_var = input_bs.cuda()
                 # [Z, E, L] = model(input_bs_var)
                 # best_pic[:, jjj*batch_size:(jjj+1)*batch_size] = (255* torch.mm(A_tensor, Z[jj])).cpu().data.numpy()
-    # print('==>>> epoch: {}, psnr1: {:.6f}'.format(epoch, psnr[0]))
+    # print('==>>> epoch: {}, nmse1: {:.6f}'.format(epoch, psnr[0]))
     print('==>> epoch: {}'.format(epoch))
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('Loss{}:{:.3f}'.format(k+1, mse_value[k]), end=' ')
+        print('NMSE{}:{:.3f}'.format(k+1, nmse[k]), end=' ')
     print(" ")
-    # print('******Best PSNR:{:.3f}'.format(psnr_value))
+    print('******Best NMSE:{:.3f}'.format(nmse_value))
 
     # save recovered image
     # img = trans2image(best_pic)
