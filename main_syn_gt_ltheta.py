@@ -38,7 +38,7 @@ class DLADMMNet(nn.Module):
             # self.beta2.append(nn.Parameter(torch.ones(self.m, self.batch_size, dtype=torch.float32)))
             self.beta1.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
             self.beta2.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
-            self.active_para.append(nn.Parameter(0.025 * torch.ones(self.m, 1, dtype=torch.float32)))
+            self.active_para.append(nn.Parameter(0.025 * torch.ones(self.n, 1, dtype=torch.float32)))
             self.active_para1.append(nn.Parameter(0.06 * torch.ones(self.m, 1, dtype=torch.float32)))
             self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
@@ -247,8 +247,6 @@ for epoch in range(num_epoch):
                 continue
 
             loss.append(
-                # alpha * torch.mean(torch.abs(Z[k])) +
-                # torch.mean(torch.abs(E[k]))
                 torch.sum((Z[k] - Z_label_bs)**2.0) +
                 torch.sum((E[k] - E_label_bs)**2.0)
             )
