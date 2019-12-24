@@ -221,7 +221,11 @@ for epoch in range(num_epoch):
         loss = list()
         total_loss = 0
 
-        for k in range(loss_start_layer, layers):
+        for k in range(layers):
+            if k < loss_start_layer:
+                loss.append(0.0)
+                continue
+
             loss.append(
                 alpha * torch.mean(torch.abs(Z[k])) +
                 torch.mean(torch.abs(E[k]))
