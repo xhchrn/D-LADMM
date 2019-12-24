@@ -215,7 +215,7 @@ loss_start_layer = 0
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
     # model.train()
-    learning_rate =  0.01 * 0.5 ** (epoch // 30)
+    learning_rate =  0.0002 * 0.5 ** (epoch // 30)
     print('learning rate of this epoch {:.8f}'.format(learning_rate))
     # del optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
@@ -292,8 +292,8 @@ for epoch in range(num_epoch):
 
     mse_z = mse_z / n_test
     mse_e = mse_e / n_test
-    nmse_denom_z = torch.sum(Z_ts ** 2.0) / n_test
-    nmse_denom_e = torch.sum(E_ts ** 2.0) / n_test
+    nmse_denom_z = torch.sum(torch.from_numpy(Z_ts).cuda() ** 2.0) / n_test
+    nmse_denom_e = torch.sum(torch.from_numpy(E_ts).cuda() ** 2.0) / n_test
     nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
     nmse_value = 10.0
     # print(mse_value)
