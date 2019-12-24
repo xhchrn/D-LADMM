@@ -200,6 +200,7 @@ ts_index_loc = np.arange(1000)
 # psnr_value = 0
 # best_pic = np.zeros(shape=(256,1024))
 optimizer = None
+loss_start_layer = layers - 1
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
     # model.train()
@@ -220,7 +221,7 @@ for epoch in range(num_epoch):
         loss = list()
         total_loss = 0
 
-        for k in range(layers-1, layers):
+        for k in range(loss_start_layer, layers):
             loss.append(
                 alpha * torch.mean(torch.abs(Z[k])) +
                 torch.mean(torch.abs(E[k]))
@@ -233,7 +234,7 @@ for epoch in range(num_epoch):
         if (j) % 100 == 0:
             # print('==>>> epoch: {},loss10: {:.6f}'.format(epoch, loss10))
             print('==>> epoch: {} [{}/{}]'.format(epoch+1, j, n//batch_size))
-            for k in range(layers):
+            for k in range(loss_start_layer, layers):
                 print('loss{}:{:.3f}'.format(k + 1, loss[k]), end=' ')
             print(" ")
 
