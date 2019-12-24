@@ -171,10 +171,10 @@ X = syn_data['train_x'].astype(np.float32)
 X = X.T
 
 Z_tr = syn_data['train_z'].astype(np.float32)
-Z_tr = Z.T
+Z_tr = Z_tr.T
 
 E_tr = syn_data['train_e'].astype(np.float32)
-E_tr = E.T
+E_tr = E_tr.T
 
 X_ts = syn_data['test_x'].astype(np.float32)
 X_ts = X_ts.T
