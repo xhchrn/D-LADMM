@@ -210,11 +210,12 @@ ts_index_loc = np.arange(1000)
 # psnr_value = 0
 # best_pic = np.zeros(shape=(256,1024))
 optimizer = None
-loss_start_layer = layers - 1
+# loss_start_layer = layers - 1
+loss_start_layer = 0
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
     # model.train()
-    learning_rate =  0.0002 * 0.5 ** (epoch // 30)
+    learning_rate =  0.01 * 0.5 ** (epoch // 30)
     print('learning rate of this epoch {:.8f}'.format(learning_rate))
     # del optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
@@ -228,6 +229,9 @@ for epoch in range(num_epoch):
         input_bs_var = input_bs.cuda()
         [Z, E, L] = model(input_bs_var)
 
+        Z_label_bs = torch.from_numpy(Z_ts[:, address]).cuda()
+        E_label_bs = torch.from_numpy(E_ts[:, address]).cuda()
+
         loss = list()
         total_loss = 0
 
@@ -239,8 +243,8 @@ for epoch in range(num_epoch):
             loss.append(
                 # alpha * torch.mean(torch.abs(Z[k])) +
                 # torch.mean(torch.abs(E[k]))
-                torch.sum((Z[k] - Z_tr[:, address])**2.0) +
-                torch.sum((E[k] - E-tr[:, address])**2.0)
+                torch.sum((Z[k] - Z_label_bs)**2.0) +
+                torch.sum((E[k] - E_label_bs)**2.0)
             )
 
             total_loss = total_loss + loss[-1]
@@ -270,6 +274,9 @@ for epoch in range(num_epoch):
         input_bs_var = input_bs.cuda()
         [Z, E, L] = model(input_bs_var)
 
+        Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
+        E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
+
         # input_gt = X_gt[:, j*batch_size:(j+1)*batch_size]
         # input_gt = torch.from_numpy(input_gt)
         # # input_gt_var = torch.autograd.Variable(input_gt.cuda())
@@ -279,8 +286,6 @@ for epoch in range(num_epoch):
             # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
             # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
             # mse_value[jj] = mse_value[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
-            Z_label_bs = Z_ts[:, j*batch_size:(j+1)*batch_size]
-            E_label_bs = E_ts[:, j*batch_size:(j+1)*batch_size]
             # mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
             mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
             mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
