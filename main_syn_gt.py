@@ -256,7 +256,7 @@ for epoch in range(num_epoch):
 
     # del loss, total_loss
 
-    torch.save(model.state_dict(), model.name())
+    torch.save(model.state_dict(), model.name()+'_gt.pth')
 
     print('---------------------------testing---------------------------')
     # model.eval()
