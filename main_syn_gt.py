@@ -229,8 +229,8 @@ for epoch in range(num_epoch):
         input_bs_var = input_bs.cuda()
         [Z, E, L] = model(input_bs_var)
 
-        Z_label_bs = torch.from_numpy(Z_ts[:, address]).cuda()
-        E_label_bs = torch.from_numpy(E_ts[:, address]).cuda()
+        Z_label_bs = torch.from_numpy(Z_tr[:, address]).cuda()
+        E_label_bs = torch.from_numpy(E_tr[:, address]).cuda()
 
         loss = list()
         total_loss = 0
