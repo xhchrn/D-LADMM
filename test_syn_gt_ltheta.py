@@ -379,11 +379,11 @@ if objective == 'NMSE':
     nmse_denom_e = torch.sum(torch.from_numpy(E_ts).cuda() ** 2.0) / n_test
     nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
     nmse_value = 1000.0
-    for jj in range(layers):
+    for jj in range(K):
         if(nmse[jj] < nmse_value):
             nmse_value = nmse[jj].cpu().item()
     print('NMSE values:')
-    for k in range(layers):
+    for k in range(K):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('{:.3f}'.format(nmse[k]), end=',')
     print(" ")
@@ -393,11 +393,11 @@ if objective == 'NMSE':
 elif objective == 'L1L1':
     mse_values = mse_values / n_test
     mse_value = 1000.0
-    for jj in range(layers):
+    for jj in range(K):
         if(mse_values[jj] < mse_value):
             mse_value = mse_values[jj].cpu().item()
     print('MSE values:')
-    for k in range(layers):
+    for k in range(K):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('{:.3f}'.format(mse_values[k]), end=',')
     print(" ")
@@ -410,7 +410,7 @@ elif objective == 'S-L2':
     # Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], Ep)
     # sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).mean()
     print('L2 norms of S(uk):')
-    for k in range(layers):
+    for k in range(K):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('{:.3f}'.format(sl2_values[k]), end=',')
     print(" ")
