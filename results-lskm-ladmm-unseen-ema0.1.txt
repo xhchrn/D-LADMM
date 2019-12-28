@@ -1,0 +1,9 @@
+==>>> use cuda
+==>>> batch size: 20
+==>>> total testing batch number: 50
+ 
+---------------------------testing---------------------------
+NMSE1:2.409 NMSE2:1.498 NMSE3:0.883 NMSE4:0.525 NMSE5:0.319 NMSE6:0.190 NMSE7:0.104 NMSE8:0.048 NMSE9:0.015 NMSE10:-0.002 NMSE11:-0.012 NMSE12:-0.019 NMSE13:-0.023 NMSE14:-0.026 NMSE15:-0.026 NMSE16:-0.025 NMSE17:-0.020 NMSE18:-0.015 NMSE19:0.024 NMSE20:0.019  
+ 
+SG Pct 1:1.000 SG Pct 2:1.000 SG Pct 3:1.000 SG Pct 4:1.000 SG Pct 5:1.000 SG Pct 6:1.000 SG Pct 7:1.000 SG Pct 8:1.000 SG Pct 9:1.000 SG Pct 10:1.000 SG Pct 11:1.000 SG Pct 12:1.000 SG Pct 13:1.000 SG Pct 14:1.000 SG Pct 15:1.000 SG Pct 16:1.000 SG Pct 17:0.999 SG Pct 18:0.999 SG Pct 19:0.984 SG Pct 20:0.984  
+******Best NMSE:-0.026
