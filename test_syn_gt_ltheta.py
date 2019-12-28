@@ -322,8 +322,8 @@ psnr_value = 0
 print('---------------------------testing---------------------------')
 # model.eval()
 # mse_value = torch.zeros(layers).cuda()
-mse_z = torch.zeros(layers).cuda()
-mse_e = torch.zeros(layers).cuda()
+mse_z = torch.zeros(K).cuda()
+mse_e = torch.zeros(K).cuda()
 if use_learned and use_safeguard:
     sg_count = torch.zeros(K).cuda()
 for j in range(n_test//batch_size):
