@@ -352,7 +352,7 @@ mse_e = mse_e / n_test
 nmse_denom_z = torch.sum(torch.from_numpy(Z_ts).cuda() ** 2.0) / n_test
 nmse_denom_e = torch.sum(torch.from_numpy(E_ts).cuda() ** 2.0) / n_test
 nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
-nmse_value = 10.0
+nmse_value = 1000.0
 if use_learned and use_safeguard:
     sg_pct = sg_count / float(n_test)
 # print(mse_value)
