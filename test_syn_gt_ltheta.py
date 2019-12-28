@@ -386,6 +386,7 @@ if objective == 'NMSE':
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('{:.3f}'.format(nmse[k]), end=',')
+    print(" ")
     print('******Best NMSE: {:.3f}'.format(nmse_value))
     print(" ")
 
@@ -399,6 +400,7 @@ elif objective == 'L1L1':
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('{:.3f}'.format(mse_values[k]), end=',')
+    print(" ")
     print('******Best MSE: {:.3f}'.format(mse_value))
     print(" ")
 
@@ -411,16 +413,17 @@ elif objective == 'S-L2':
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('{:.3f}'.format(sl2_values[k]), end=',')
+    print(" ")
     # print('******Best values: {:.3f}'.format(mse_value))
     print(" ")
 
 if use_learned and use_safeguard:
     sg_pct = sg_count / float(n_test)
-print(" ")
 if use_learned and use_safeguard:
     print("Sg Pcts:")
     for k in range(K):
         sg_pct = sg_count / float(n_test)
         print('{:.3f}'.format(sg_pct[k]), end=',')
+    print(" ")
     print(" ")
 
