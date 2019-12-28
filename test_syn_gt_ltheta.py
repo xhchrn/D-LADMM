@@ -167,7 +167,7 @@ class DLADMMNet(nn.Module):
                 # L2O + safegaurding
                 assert use_learned
                 Ep         = self.E0 if k == 0 else E[-1]
-                S_L2O      = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, E[-1])
+                S_L2O      = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
                 S_L2O_norm = self.two_norm(S_L2O)
                 # print(S_L2O_norm)
                 # print(mu_k)
