@@ -349,6 +349,8 @@ for j in range(n_test//batch_size):
         # mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
         mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
         mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+        if use_learned and use_safeguard:
+            sg_count[jj] += count[jj]
 
 mse_z = mse_z / n_test
 mse_e = mse_e / n_test
