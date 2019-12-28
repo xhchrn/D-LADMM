@@ -9,7 +9,7 @@ import torch.optim as optim
 import numpy as np
 import scipy.io as sio
 import scipy.misc
-from mu_updator import mu_updator_dict
+from mu_updater import mu_updater_dict
 
 import argparse
 
@@ -132,9 +132,9 @@ class DLADMMNet(nn.Module):
         T.append(self.A.mm(self.Z0) + self.E0 - X)
 
         if use_learned and use_safeguard:
-            # NOTE: only take Tnew for safegaurding
+            # NOTE: only take Tn for safegaurding
             mu_k = self.two_norm(self.KM(self.Z0, self.E0, self.L0, T[-1], X)[-2])
-            mu_updator = mu_updator_dict[mu_k_method](mu_k, mu_k_param)
+            mu_updater = mu_updater_dict[mu_k_method](mu_k, mu_k_param)
             sg_count = np.zeros(self.layers)
 
         for k in range(K):
@@ -164,39 +164,39 @@ class DLADMMNet(nn.Module):
             if use_safeguard:
                 # L2O + safegaurding
                 assert use_learned
-                S_L2O      = self.S(Znew_L2O, Enew_L2O, Lnew_L2O, Tnew_L2O, X, E[-1])
+                S_L2O      = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, E[-1])
                 S_L2O_norm = self.two_norm(S_L2O)
                 # print(S_L2O_norm)
                 # print(mu_k)
                 # print(" ")
                 bool_term           = (S_L2O_norm < (1.0-delta) * mu_k).float()
-                mu_k                = mu_updator.step(S_L2O_norm, bool_term)
+                mu_k                = mu_updater.step(S_L2O_norm, bool_term)
                 bool_term           = bool_term.reshape(1, bool_term.shape[0])
                 bool_complement     = 1.0 - bool_term
 
-                Var.append(bool_term * Varnew_L2O + bool_complement * Varnew_KM)
-                Z.append(bool_term * Znew_L2O   + bool_complement * Znew_KM)
-                E.append(bool_term * Enew_L2O   + bool_complement * Enew_KM)
-                T.append(bool_term * Tnew_L2O   + bool_complement * Tnew_KM)
-                L.append(bool_term * Lnew_L2O   + bool_complement * Lnew_KM)
+                Var.append(bool_term * Varn_L2O + bool_complement * Varn_KM)
+                Z.append(bool_term * Zn_L2O   + bool_complement * Zn_KM)
+                E.append(bool_term * En_L2O   + bool_complement * En_KM)
+                T.append(bool_term * Tn_L2O   + bool_complement * Tn_KM)
+                L.append(bool_term * Ln_L2O   + bool_complement * Ln_KM)
 
                 sg_count[k] = bool_complement.sum().cpu().item()
 
             elif use_learned:
                 # Only L2O
-                Var.append(Varnew_L2O)
-                Z.append(Znew_L2O)
-                E.append(Enew_L2O)
-                T.append(Tnew_L2O)
-                L.append(Lnew_L2O)
+                Var.append(Varn_L2O)
+                Z.append(Zn_L2O)
+                E.append(En_L2O)
+                T.append(Tn_L2O)
+                L.append(Ln_L2O)
 
             else:
                 # Classic KL algorithm
-                Var.append(Varnew_KM)
-                Z.append(Znew_KM)
-                E.append(Enew_KM)
-                T.append(Tnew_KM)
-                L.append(Lnew_KM)
+                Var.append(Varn_KM)
+                Z.append(Zn_KM)
+                E.append(En_KM)
+                T.append(Tn_KM)
+                L.append(Ln_KM)
 
         if use_learned and use_safeguard:
             return Z, E, L, sg_count
