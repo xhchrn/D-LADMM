@@ -382,9 +382,9 @@ if objective == 'NMSE':
     for jj in range(layers):
         if(nmse[jj] < nmse_value):
             nmse_value = nmse[jj].cpu().item()
+    print('NMSE values:')
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('NMSE values:')
         print('{:.3f}'.format(nmse[k]), end=',')
     print('******Best NMSE: {:.3f}'.format(nmse_value))
     print(" ")
@@ -395,9 +395,9 @@ elif objective == 'L1L1':
     for jj in range(layers):
         if(mse_values[jj] < mse_value):
             mse_value = mse_values[jj].cpu().item()
+    print('MSE values:')
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('MSE values:')
         print('{:.3f}'.format(mse_values[k]), end=',')
     print('******Best MSE: {:.3f}'.format(mse_value))
     print(" ")
@@ -407,9 +407,9 @@ elif objective == 'S-L2':
     Ep = model.E0 if jj == 0 else E[-1]
     Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], Ep)
     sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).mean()
+    print('L2 norms of S(uk):')
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('L2 norms of S(uk):')
         print('{:.3f}'.format(sl2_values[k]), end=',')
     # print('******Best values: {:.3f}'.format(mse_value))
     print(" ")
