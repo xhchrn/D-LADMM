@@ -11,7 +11,6 @@ import scipy.io as sio
 import scipy.misc
 
 
-
 ## network definition
 class DLADMMNet(nn.Module):
     def __init__(self, m, n, d, batch_size, A, Z0, E0, L0, layers):
@@ -42,11 +41,8 @@ class DLADMMNet(nn.Module):
             self.active_para1.append(nn.Parameter(0.06 * torch.ones(self.m, 1, dtype=torch.float32)))
             self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
-
         # self.active_para = torch.tensor(0.025, dtype=torch.float32).cuda()
         # self.active_para1 = torch.tensor(0.06, dtype=torch.float32).cuda()
-
-
 
         for m in self.modules():
             if isinstance(m, nn.Linear):
@@ -55,14 +51,12 @@ class DLADMMNet(nn.Module):
                 m.weight = torch.nn.Parameter(self.A.t() + (1e-3)*torch.randn_like(self.A.t()))
                 #m.weight = torch.nn.Parameter(self.A.t())
 
+
     def self_active(self, x, thershold):
         return F.relu(x - thershold) - F.relu(-1.0 * x - thershold)
 
 
-
     def forward(self, x):
-        #X = x.view(-1, 28*28)
-
         X = x
 
         T = list()
