@@ -16,7 +16,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Test LADMM with synthetic data')
 parser.add_argument('--use-learned', action='store_true', help='use learned model')
 parser.add_argument('--use-safeguard', action='store_true', help='use safeguarding')
-parser.add_argument('--delta', type=float, default=0.01, help='delta in safeguarding')
+parser.add_argument('--delta', type=float, default=-99.0, help='delta in safeguarding')
 parser.add_argument('--mu-k-method', type=str, default='None', help='mu_k update method')
 parser.add_argument('--mu-k-param', type=float, default=0.0, help='mu_k update parameter')
 parser.add_argument('--test-file', type=str, default='syn_data_unseen.mat', help='data used for testing')
