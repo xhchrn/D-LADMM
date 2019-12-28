@@ -365,8 +365,8 @@ for j in range(n_test//batch_size):
             mse_values[jj] = mse_values[jj] + (alpha * torch.sum(torch.abs(Z[jj])) + torch.sum(torch.abs(E[jj])))
         elif objective == 'S-L2':
             # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
-            Ep = model.E0 if jj == 0 else E[-1]
-            Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], input_bs_var, Ep)
+            Ep = model.E0 if jj == 0 else E[jj-1]
+            Sjj = model.S(Z[jj], E[jj], L[jj], T[jj], input_bs_var, Ep)
             sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).sum()
         if use_learned and use_safeguard:
             sg_count[jj] += count[jj]
@@ -408,7 +408,7 @@ elif objective == 'S-L2':
     # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
     # Ep = model.E0 if jj == 0 else E[-1]
     # Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], Ep)
-    sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).mean()
+    # sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).mean()
     print('L2 norms of S(uk):')
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
