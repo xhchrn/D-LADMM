@@ -133,7 +133,9 @@ class DLADMMNet(nn.Module):
 
         if use_learned and use_safeguard:
             # NOTE: only take Tn for safegaurding
-            mu_k = self.two_norm(self.KM(self.Z0, self.E0, self.L0, T[-1], X)[-2])
+            S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+            # mu_k = self.two_norm(self.KM(self.Z0, self.E0, self.L0, T[-1], X)[-2])
+            mu_k = self.two_norm(S_0)
             mu_updater = mu_updater_dict[mu_k_method](mu_k, mu_k_param)
             sg_count = np.zeros(self.layers)
 
@@ -164,6 +166,7 @@ class DLADMMNet(nn.Module):
             if use_safeguard:
                 # L2O + safegaurding
                 assert use_learned
+                Ep         = self.E0 if k == 0 else E[-1]
                 S_L2O      = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, E[-1])
                 S_L2O_norm = self.two_norm(S_L2O)
                 # print(S_L2O_norm)
