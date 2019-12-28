@@ -22,6 +22,7 @@ parser.add_argument('--mu-k-param', type=float, default=0.0, help='mu_k update p
 parser.add_argument('--test-file', type=str, default='syn_data_unseen.mat', help='data used for testing')
 parser.add_argument('--model-file', type=str, default='DLADMMNet.pth', help='L2O model to be loaded and tested')
 parser.add_argument('--layers', type=int, default=20, help='number of layers of the L2O model')
+parser.add_argument('--objective', type=str, default='NMSE', help='objective for observations')
 
 args = parser.parse_args()
 
@@ -36,6 +37,7 @@ test_file = args.test_file
 model_file = args.model_file
 layers = args.layers
 K = layers if use_learned or use_safeguard else num_iter
+objective = args.objective
 
 ## network definition
 class DLADMMNet(nn.Module):
@@ -202,9 +204,9 @@ class DLADMMNet(nn.Module):
                 L.append(Ln_KM)
 
         if use_learned and use_safeguard:
-            return Z, E, L, sg_count
+            return Z, E, L, T, sg_count
         else:
-            return Z, E, L
+            return Z, E, L, T
 
 
     def name(self):
@@ -325,19 +327,28 @@ psnr_value = 0
 print('---------------------------testing---------------------------')
 # model.eval()
 # mse_value = torch.zeros(layers).cuda()
-mse_z = torch.zeros(K).cuda()
-mse_e = torch.zeros(K).cuda()
+if objective == 'NMSE':
+    mse_z = torch.zeros(K).cuda()
+    mse_e = torch.zeros(K).cuda()
+elif objective == 'L1L1':
+    mse_values = torch.zeros(K).cuda()
+elif objective == 'S-L2':
+    sl2_values = torch.zeros(K).cuda()
+else:
+    raise NotImplementedError('objective `{}` not supported'.format(objective))
+
 if use_learned and use_safeguard:
     sg_count = torch.zeros(K).cuda()
+
 for j in range(n_test//batch_size):
     input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
     input_bs = torch.from_numpy(input_bs)
     # input_bs_var = torch.autograd.Variable(input_bs.cuda())
     input_bs_var = input_bs.cuda()
     if use_learned and use_safeguard:
-        Z, E, L, count = model(input_bs_var)
+        Z, E, L, T, count = model(input_bs_var)
     else:
-        [Z, E, L] = model(input_bs_var)
+        Z, E, L, T = model(input_bs_var)
 
     Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
@@ -347,61 +358,69 @@ for j in range(n_test//batch_size):
         # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
         # mse_value[jj] = mse_value[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
         # mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
-        mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
-        mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+        if objective == 'NMSE':
+            mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
+            mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+        elif objective == 'L1L1':
+            mse_values[jj] = mse_values[jj] + (alpha * torch.sum(torch.abs(Z[jj])) + torch.sum(torch.abs(E[jj])))
+        elif objective == 'S-L2':
+            # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+            Ep = model.E0 if jj == 0 else E[-1]
+            Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], Ep)
+            sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).sum()
         if use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 
-mse_z = mse_z / n_test
-mse_e = mse_e / n_test
-nmse_denom_z = torch.sum(torch.from_numpy(Z_ts).cuda() ** 2.0) / n_test
-nmse_denom_e = torch.sum(torch.from_numpy(E_ts).cuda() ** 2.0) / n_test
-nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
-nmse_value = 1000.0
+
+if objective == 'NMSE':
+    mse_z = mse_z / n_test
+    mse_e = mse_e / n_test
+    nmse_denom_z = torch.sum(torch.from_numpy(Z_ts).cuda() ** 2.0) / n_test
+    nmse_denom_e = torch.sum(torch.from_numpy(E_ts).cuda() ** 2.0) / n_test
+    nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
+    nmse_value = 1000.0
+    for jj in range(layers):
+        if(nmse[jj] < nmse_value):
+            nmse_value = nmse[jj].cpu().item()
+    for k in range(layers):
+        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        print('NMSE values:')
+        print('{:.3f}'.format(nmse[k]), end=',')
+    print('******Best NMSE: {:.3f}'.format(nmse_value))
+    print(" ")
+
+elif objective == 'L1L1':
+    mse_values = mse_values / n_test
+    mse_value = 1000.0
+    for jj in range(layers):
+        if(mse_values[jj] < mse_value):
+            mse_value = mse_values[jj].cpu().item()
+    for k in range(layers):
+        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        print('MSE values:')
+        print('{:.3f}'.format(mse_values[k]), end=',')
+    print('******Best MSE: {:.3f}'.format(mse_value))
+    print(" ")
+
+elif objective == 'S-L2':
+    # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+    Ep = model.E0 if jj == 0 else E[-1]
+    Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], Ep)
+    sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).mean()
+    for k in range(layers):
+        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        print('L2 norms of S(uk):')
+        print('{:.3f}'.format(sl2_values[k]), end=',')
+    # print('******Best values: {:.3f}'.format(mse_value))
+    print(" ")
+
 if use_learned and use_safeguard:
     sg_pct = sg_count / float(n_test)
-# print(mse_value)
-# psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131).cuda()
-for jj in range(layers):
-    if(nmse[jj] < nmse_value):
-        nmse_value = nmse[jj].cpu().item()
-
-# loss = loss / (n_test // batch_size)
-# mse_value = mse_value / (n_test//batch_size)
-# psnr = -10 * torch.log10(mse_value) + torch.tensor(48.131).cuda()
-# if use_learned and use_safeguard:
-#     sg_pct = sg_count / float(n_test)
-# for jj in range(K):
-    # if(psnr_value < psnr[jj]):
-        # psnr_value = psnr[jj].cpu().item()
-        # for jjj in range(n_test//batch_size):
-            # input_bs = X_ts[:, jjj*batch_size:(jjj+1)*batch_size]
-            # input_bs = torch.from_numpy(input_bs)
-            # # input_bs_var = torch.autograd.Variable(input_bs.cuda())
-            # input_bs_var = input_bs.cuda()
-            # if use_learned and use_safeguard:
-                # Z, E, L, count = model(input_bs_var)
-            # else:
-                # [Z, E, L] = model(input_bs_var)
-            # best_pic[:, jjj*batch_size:(jjj+1)*batch_size] = (255* torch.mm(A_tensor, Z[jj])).cpu().data.numpy()
-# print('==>>> epoch: {}, psnr1: {:.6f}'.format(epoch, psnr[0]))
-# print('==>> epoch: {}'.format(epoch))
-for k in range(layers):
-    # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-    print('NMSE{}:{:.3f}'.format(k+1, nmse[k]), end=' ')
-print(" ")
-# for k in range(K):
-    # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
 print(" ")
 if use_learned and use_safeguard:
+    print("Sg Pcts:")
     for k in range(K):
         sg_pct = sg_count / float(n_test)
-        print('SG Pct {}:{:.3f}'.format(k+1, sg_pct[k]), end=' ')
+        print('{:.3f}'.format(sg_pct[k]), end=',')
     print(" ")
-# print('******Best PSNR:{:.3f}'.format(psnr_value))
-print('******Best NMSE:{:.3f}'.format(nmse_value))
-
-# save recovered image
-# img = trans2image(best_pic)
-# scipy.misc.imsave('test_lena_01.jpg', img)
 
