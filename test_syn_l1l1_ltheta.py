@@ -135,9 +135,9 @@ class DLADMMNet(nn.Module):
 
         if use_learned and use_safeguard:
             # NOTE: only take Tn for safegaurding
-            S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+            S0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
             # mu_k = self.two_norm(self.KM(self.Z0, self.E0, self.L0, T[-1], X)[-2])
-            mu_k = self.two_norm(S_0)
+            mu_k = self.two_norm(S0)
             mu_updater = mu_updater_dict[mu_k_method](mu_k, mu_k_param)
             sg_count = np.zeros(self.layers)
 
@@ -174,10 +174,10 @@ class DLADMMNet(nn.Module):
                 # print(S_L2O_norm)
                 # print(mu_k)
                 # print(" ")
-                bool_term           = (S_L2O_norm < (1.0-delta) * mu_k).float()
-                mu_k                = mu_updater.step(S_L2O_norm, bool_term)
-                bool_term           = bool_term.reshape(1, bool_term.shape[0])
-                bool_complement     = 1.0 - bool_term
+                bool_term       = (S_L2O_norm < (1.0-delta) * mu_k).float()
+                mu_k            = mu_updater.step(S_L2O_norm, bool_term)
+                bool_term       = bool_term.reshape(1, bool_term.shape[0])
+                bool_complement = 1.0 - bool_term
 
                 Var.append(bool_term * Varn_L2O + bool_complement * Varn_KM)
                 Z.append(bool_term * Zn_L2O   + bool_complement * Zn_KM)
@@ -266,7 +266,6 @@ m, d, n = 250, 500, 10000
 # n_test = 1024 if 'lena' in test_file or 'fake' in test_file else 256
 n_test = 1000
 batch_size = 20
-num_epoch = 100
 
 use_cuda = torch.cuda.is_available()
 print('==>>> use cuda' if use_cuda else '==>>> use cpu')
@@ -306,7 +305,9 @@ E0 = torch.zeros(m, batch_size, dtype=torch.float32)
 L0 = torch.zeros(m, batch_size, dtype=torch.float32)
 A_tensor = torch.from_numpy(A_ori)
 
-model = DLADMMNet(m=m, n=n, d=d, batch_size=batch_size, A=A_tensor, Z0=Z0, E0=E0, L0=L0, layers=layers)
+model = DLADMMNet(
+    m=m, n=n, d=d, batch_size=batch_size, A=A_tensor,
+    Z0=Z0, E0=E0, L0=L0, layers=layers)
 A_tensor = A_tensor.cuda()
 if use_cuda:
     model = model.cuda()
