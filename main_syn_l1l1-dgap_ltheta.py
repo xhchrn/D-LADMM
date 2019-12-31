@@ -202,7 +202,7 @@ for epoch in range(num_epoch):
                 alpha * torch.mean(torch.abs(Z[k])) +
                 torch.mean(torch.abs(E[k])) +
                 torch.mean(dual_gap(torch.mm(A_tensor.t(), L[k]), alpha)) +
-                torch.mean(dual_gap(L[k], 1)) +
+                torch.mean(dual_gap(L[k], 1)) -
                 torch.mean(L[k] * input_bs_var)
             )
 
@@ -235,7 +235,7 @@ for epoch in range(num_epoch):
                 alpha * torch.mean(torch.abs(Z[jj])) +
                 torch.mean(torch.abs(E[jj])) +
                 torch.mean(dual_gap(torch.mm(A_tensor.t(), L[jj]), alpha)) +
-                torch.mean(dual_gap(L[jj], 1)) +
+                torch.mean(dual_gap(L[jj], 1)) -
                 torch.mean(L[jj] * input_bs_var)
             )
 
