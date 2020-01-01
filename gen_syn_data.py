@@ -50,5 +50,5 @@ if __name__ == "__main__":
     d = dict(A=A, train_x=train_x, test_x=test_x,
              train_z=train_z, test_z=test_z, train_e=train_e, test_e=test_e)
     # save mat file
-    sio.savemat('syn_data_p{:.1f}_s{:.1f}.mat'.format(p, sigma), d)
+    sio.savemat('syn_data_p{}_s{}.mat'.format(p, sigma), d)
 
