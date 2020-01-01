@@ -326,7 +326,7 @@ psnr_value = 0
 # best_pic = np.zeros(shape=(256,1024)) if 'lena' in test_file or 'fake' in test_file else np.zeros(shape=(256, 256))
 
 print('---------------------------testing---------------------------')
-# model.eval()
+model.eval()
 # mse_value = torch.zeros(layers).cuda()
 if objective == 'NMSE':
     mse_z = torch.zeros(K).cuda()
@@ -346,32 +346,30 @@ for j in range(n_test//batch_size):
     input_bs = torch.from_numpy(input_bs)
     # input_bs_var = torch.autograd.Variable(input_bs.cuda())
     input_bs_var = input_bs.cuda()
-    if use_learned and use_safeguard:
-        Z, E, L, T, count = model(input_bs_var)
-    else:
-        Z, E, L, T = model(input_bs_var)
+    with torch.no_grad():
+        if use_learned and use_safeguard:
+            Z, E, L, T, count = model(input_bs_var)
+        else:
+            Z, E, L, T = model(input_bs_var)
 
     Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
 
     for jj in range(K):
-        # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
-        # mse_value[jj] = mse_value[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
-        # mse_value[jj] = mse_value[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
-        # mse_value[jj] = mse_value[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
-        if objective == 'NMSE':
-            mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
-            mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
-        elif objective == 'L1L1':
-            l1l1_values[jj] = l1l1_values[jj] + (
-                alpha * torch.sum(torch.abs(Z[jj])) +
-                torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
-            )
-        elif objective == 'S-L2':
-            # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
-            Ep = model.E0 if jj == 0 else E[jj-1]
-            Sjj = model.S(Z[jj], E[jj], L[jj], T[jj], input_bs_var, Ep)
-            sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
+        with torch.no_grad():
+            if objective == 'NMSE':
+                mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
+                mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+            elif objective == 'L1L1':
+                l1l1_values[jj] = l1l1_values[jj] + (
+                    alpha * torch.sum(torch.abs(Z[jj])) +
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
+                )
+            elif objective == 'S-L2':
+                # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+                Ep = model.E0 if jj == 0 else E[jj-1]
+                Sjj = model.S(Z[jj], E[jj], L[jj], T[jj], input_bs_var, Ep)
+                sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
         if use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 
