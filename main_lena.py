@@ -240,7 +240,7 @@ for epoch in range(num_epoch):
 
     # del loss, total_loss
 
-    torch.save(model.state_dict(), model.name())
+    torch.save(model.state_dict(), model.name() + '_lena.pth')
 
     print('---------------------------testing---------------------------')
     # model.eval()
@@ -283,8 +283,8 @@ for epoch in range(num_epoch):
     print('******Best PSNR:{:.3f}'.format(psnr_value))
 
     # save recovered image
-    img = trans2image(best_pic)
-    scipy.misc.imsave('lena_01.jpg', img)
+    # img = trans2image(best_pic)
+    # scipy.misc.imsave('lena_01.jpg', img)
 
     torch.cuda.empty_cache()
 
