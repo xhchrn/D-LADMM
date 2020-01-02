@@ -127,10 +127,10 @@ class DLADMMNet(nn.Module):
         kwargs['ss2'] = 0.999
 
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
-        c1 = beta * ss2
+        c1 = kwargs['beta'] * kwargs['ss2']
         assert c1 < 1
         c = (c1 / (1 - c1)).sqrt()
-        Sn = torch.cat([beta * Tn, c * (En - 2*Ek + Ep)])
+        Sn = torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
 
         return Sn
 
