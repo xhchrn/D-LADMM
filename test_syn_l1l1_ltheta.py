@@ -12,7 +12,7 @@ import scipy.misc
 
 from mu_updater import mu_updater_dict
 from math import sqrt
-from utils import setup_logger
+from utils import setup_logger, my_str
 
 import argparse
 
@@ -419,12 +419,13 @@ if objective == 'NMSE':
         if(nmse[jj] < nmse_value):
             nmse_value = nmse[jj].cpu().item()
     print('NMSE values:')
-    for k in range(K):
-        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('{:.3f}'.format(nmse[k]), end=',')
-    print(" ")
-    print('******Best NMSE: {:.3f}'.format(nmse_value))
-    print(" ")
+    print(', '.join(map(my_str, nmse)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(nmse[k]), end=',')
+    # print(" ")
+    print('******Best NMSE: {:.3f}\n'.format(nmse_value))
+    # print(" ")
 
 elif objective == 'L1L1':
     l1l1_values = l1l1_values / n_test
@@ -433,33 +434,25 @@ elif objective == 'L1L1':
         if(l1l1_values[jj] < mse_value):
             mse_value = l1l1_values[jj].cpu().item()
     print('MSE values:')
-    for k in range(K):
-        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('{:.3f}'.format(l1l1_values[k]), end=',')
-    print(" ")
-    print('******Best MSE: {:.3f}'.format(mse_value))
-    print(" ")
+    print(', '.join(map(my_str, l1l1_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
+    print('******Best MSE: {:.3f}\n'.format(mse_value))
+    # print(" ")
 
 elif objective == 'S-L2':
-    # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
-    # Ep = model.E0 if jj == 0 else E[-1]
-    # Sjj = model.S(Z[jj], E[jj], L[jj], T[-1], Ep)
-    # sl2_values[jj] = sl2_values[jj] + model.two_norm(sl2_values).mean()
     print('L2 norms of S(uk):')
-    for k in range(K):
-        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('{:.3f}'.format(sl2_values[k]), end=',')
-    print(" ")
-    # print('******Best values: {:.3f}'.format(mse_value))
-    print(" ")
+    print(', '.join(map(my_str, sl2_values)))
 
 if use_learned and use_safeguard:
     sg_pct = sg_count / float(n_test)
-if use_learned and use_safeguard:
     print("Sg Pcts:")
-    for k in range(K):
-        sg_pct = sg_count / float(n_test)
-        print('{:.3f}'.format(sg_pct[k]), end=',')
-    print(" ")
-    print(" ")
+    print(', '.join(map(my_str, sg_pct)))
+    # for k in range(K):
+        # sg_pct = sg_count / float(n_test)
+        # print('{:.3f}'.format(sg_pct[k]), end=',')
+    # print(" ")
+    # print(" ")
 
