@@ -9,8 +9,10 @@ import torch.optim as optim
 import numpy as np
 import scipy.io as sio
 import scipy.misc
+
 from mu_updater import mu_updater_dict
 from math import sqrt
+from utils import setup_logger
 
 import argparse
 
@@ -20,10 +22,12 @@ parser.add_argument('--use-safeguard', action='store_true', help='use safeguardi
 parser.add_argument('--delta', type=float, default=-99.0, help='delta in safeguarding')
 parser.add_argument('--mu-k-method', type=str, default='None', help='mu_k update method')
 parser.add_argument('--mu-k-param', type=float, default=0.0, help='mu_k update parameter')
-parser.add_argument('--test-file', type=str, default='syn_data_unseen.mat', help='data used for testing')
+# parser.add_argument('--test-file', type=str, default=None, help='data used for testing')
 parser.add_argument('--model-file', type=str, default='DLADMMNet.pth', help='L2O model to be loaded and tested')
 parser.add_argument('--layers', type=int, default=20, help='number of layers of the L2O model')
 parser.add_argument('--objective', type=str, default='NMSE', help='objective for observations')
+parser.add_argument('-p', '--p', type=float, default=0.2, help='p in the Bernoulli distribution')
+parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 
 args = parser.parse_args()
 
@@ -34,11 +38,27 @@ alpha = 0.5
 delta = args.delta
 mu_k_method = args.mu_k_method
 mu_k_param  = args.mu_k_param
-test_file = args.test_file
+test_file = 'syn_data_unseen_p{}_s{}.mat'.format(args.p, args.sigma)
 model_file = args.model_file
 layers = args.layers
 K = layers if use_learned or use_safeguard else num_iter
 objective = args.objective
+
+# logger file
+if not os.path.isdir('test-logs'):
+    os.makedirs('test-logs')
+log_file = os.path.join(
+    'test-logs',
+    '{obj}-results-{alg}-p{p}-sigma{sigma}-{method}{param}.txt'.format(
+        obj = objective.lower(),
+        alg = 'lskm' if use_learned else 'km',
+        p = args.p,
+        sigma = args.sigma,
+        method = mu_k_method,
+        param = '' if mu_k_method == 'None' else mu_k_param
+    )
+)
+print = setup_logger(log_file)
 
 ## network definition
 class DLADMMNet(nn.Module):
