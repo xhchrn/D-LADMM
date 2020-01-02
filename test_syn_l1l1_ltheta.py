@@ -93,17 +93,28 @@ class DLADMMNet(nn.Module):
 
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
-        beta = 1.0 / self.L.sqrt()
-        ss1 = 1.0 / self.L.sqrt()
-        ss2 = 0.5
+        beta = kwargs.get('beta', 1.0)
+        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss2  = kwargs.get('ss2', 0.999)
+        # beta = 1.0 / self.L.sqrt()
+        # ss1 = 1.0 / self.L.sqrt()
+        # ss2 = 0.5
 
+        # NOTE: T^k = A*Z^k + E^k - X
         Varn = Lk + beta * Tk
-        Zn = self.self_active(Zk - ss1 * self.At.mm(Varn), ss1 * alpha)
+        Zn = self.self_active(
+            Zk - ss1 * self.At.mm(Varn),
+            ss1 * alpha
+        )
 
-        # NOTE: En step is different from D-LADMM implementation
+        # NOTE: \hat{T}^k = A*Z^{k+1} + Ek - X
         TTn = self.A.mm(Zn) + Ek - X
-        En = self.self_active(Ek - ss2 * (Lk + beta * TTn), ss2)
+        En = self.self_active(
+            Ek - ss2 * (Lk + beta * TTn),
+            ss2
+        )
 
+        # NOTE: T^{k+1} = A*Z^{k+1} + E^{k+1} - X
         Tn = self.A.mm(Zn) + En - X
         Ln = Lk + beta * Tn
 
@@ -111,9 +122,9 @@ class DLADMMNet(nn.Module):
 
 
     def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
-        beta = 1.0 / self.L.sqrt()
-        ss1 = 1.0 / self.L.sqrt()
-        ss2 = 0.5
+        kwargs['beta'] = 1.0
+        kwargs['ss1'] = 0.999 / self.L
+        kwargs['ss2'] = 0.999
 
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
         c1 = beta * ss2
@@ -144,7 +155,8 @@ class DLADMMNet(nn.Module):
         for k in range(K):
             if k == 0 :
                 # Classic algorithm
-                Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(self.Z0, self.E0, self.L0, T[-1], X)
+                Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(
+                    self.Z0, self.E0, self.L0, T[-1], X)
                 # L2O algorithm
                 if use_learned:
                     # Tself.A.mm(self.Z0) + self.E0 - X)
@@ -156,7 +168,8 @@ class DLADMMNet(nn.Module):
 
             else :
                 # Classic algorithm
-                Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(Z[-1], E[-1], L[-1], T[-1], X)
+                Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(
+                    Z[-1], E[-1], L[-1], T[-1], X)
                 # L2O algorithm
                 if use_learned:
                     Varn_L2O = L[-1] + self.beta1[k].mul(T[-1])
@@ -180,10 +193,10 @@ class DLADMMNet(nn.Module):
                 bool_complement = 1.0 - bool_term
 
                 Var.append(bool_term * Varn_L2O + bool_complement * Varn_KM)
-                Z.append(bool_term * Zn_L2O   + bool_complement * Zn_KM)
-                E.append(bool_term * En_L2O   + bool_complement * En_KM)
-                T.append(bool_term * Tn_L2O   + bool_complement * Tn_KM)
-                L.append(bool_term * Ln_L2O   + bool_complement * Ln_KM)
+                Z.append  (bool_term * Zn_L2O   + bool_complement * Zn_KM)
+                E.append  (bool_term * En_L2O   + bool_complement * En_KM)
+                T.append  (bool_term * Tn_L2O   + bool_complement * Tn_KM)
+                L.append  (bool_term * Ln_L2O   + bool_complement * Ln_KM)
 
                 sg_count[k] = bool_complement.sum().cpu().item()
 
