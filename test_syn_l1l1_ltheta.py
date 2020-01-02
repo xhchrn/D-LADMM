@@ -10,6 +10,7 @@ import numpy as np
 import scipy.io as sio
 import scipy.misc
 from mu_updater import mu_updater_dict
+from math import sqrt
 
 import argparse
 
@@ -129,7 +130,7 @@ class DLADMMNet(nn.Module):
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
         c1 = kwargs['beta'] * kwargs['ss2']
         assert c1 < 1
-        c = (c1 / (1 - c1)).sqrt()
+        c = sqrt(c1 / (1 - c1))
         Sn = torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
 
         return Sn
