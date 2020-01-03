@@ -172,8 +172,8 @@ ts_index_loc = np.arange(1000)
 # psnr_value = 0
 # best_pic = np.zeros(shape=(256,1024))
 optimizer = None
-# loss_start_layer = layers - 1
-loss_start_layer = 0
+loss_start_layer = layers - 1
+# loss_start_layer = 0
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
     # model.train()

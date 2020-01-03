@@ -1,8 +1,0 @@
-==>>> use cuda
-==>>> batch size: 20
-==>>> total testing batch number: 50
- 
----------------------------testing---------------------------
-NMSE1:10.125 NMSE2:10.571 NMSE3:11.033 NMSE4:11.519 NMSE5:11.884 NMSE6:12.221 NMSE7:12.567 NMSE8:12.834 NMSE9:13.050 NMSE10:13.290 NMSE11:13.506 NMSE12:13.696 NMSE13:13.872 NMSE14:14.041 NMSE15:14.188 NMSE16:14.332 NMSE17:14.456 NMSE18:14.575 NMSE19:14.681 NMSE20:14.784  
- 
-******Best NMSE:10.125
