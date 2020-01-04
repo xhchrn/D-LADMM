@@ -202,9 +202,9 @@ for epoch in range(num_epoch):
                 continue
 
             loss.append(
-                alpha * torch.mean(torch.abs(Z[k]), dim=0).sum() +
+                alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
                 # torch.mean(torch.abs(E[k]))
-                torch.mean(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).sum()
+                torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
             )
 
             decay = 0.6 ** epoch if k < layers - 1 else 1.0
