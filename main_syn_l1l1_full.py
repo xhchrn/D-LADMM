@@ -19,7 +19,6 @@ class DLADMMNet(nn.Module):
         self.m = m
         self.n = n
         self.d = d
-        self.batch_size = batch_size
         self.A = A.cuda()
         self.Z0 = Z0.cuda()
         self.E0 = E0.cuda()
@@ -180,7 +179,7 @@ loss_start_layer = 0
 for epoch in range(num_epoch):
     print('---------------------------training---------------------------')
     # model.train()
-    learning_rate =  0.0002 * 0.5 ** (epoch // 30)
+    learning_rate =  0.005 * 0.5 ** (epoch // 30)
     print('learning rate of this epoch {:.8f}'.format(learning_rate))
     # del optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
@@ -212,7 +211,7 @@ for epoch in range(num_epoch):
 
         total_loss.backward()
         optimizer.step()
-        if (j) % 100 == 0:
+        if (j+1) % 100 == 0:
             # print('==>>> epoch: {},loss10: {:.6f}'.format(epoch, loss10))
             print('==>> epoch: {} [{}/{}]'.format(epoch+1, j, n//batch_size))
             for k in range(loss_start_layer, layers):
@@ -230,7 +229,8 @@ for epoch in range(num_epoch):
         input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
         input_bs = torch.from_numpy(input_bs)
         input_bs_var = input_bs.cuda()
-        [Z, E, L] = model(input_bs_var)
+        with torch.no_grad():
+            [Z, E, L] = model(input_bs_var)
 
         for jj in range(layers):
             ################ l1l1_values[jj] = l1l1_values[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
@@ -242,7 +242,7 @@ for epoch in range(num_epoch):
                 torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
 
     l1l1_values = l1l1_values / n_test
-    print('==>> epoch: {}'.format(epoch))
+    print('==>> epoch: {}'.format(epoch+1))
     for k in range(layers):
         # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         print('Loss{}:{:.3f}'.format(k+1, l1l1_values[k]), end=' ')
