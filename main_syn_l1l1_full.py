@@ -94,7 +94,7 @@ class DLADMMNet(nn.Module):
                 E.append(self.self_active(E[-1] - self.ss2[k].mul(VVar), self.active_para1[k]))
                 # Step 3
                 T.append(self.A.mm(Z[-1]) + E[-1] - X)
-                L.append(L[-1] + self.beta1[k].mul(T[-1]))
+                L.append(L[-1] + self.beta3[k].mul(T[-1]))
 
                 # Z2 = self.self_active(Z1 - self.fc2(Var2.t()).t(), self.active_para)
                 # E2 = self.self_active(X - self.A.mm(Z2) - self.beta2_2.mul(L1), self.active_para1)

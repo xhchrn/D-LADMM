@@ -166,6 +166,7 @@ class DLADMMNet(nn.Module):
     def forward(self, x):
         X = x
         T = list()
+        TT = list()
         Var = list()
         Z = list()
         E = list()
@@ -211,7 +212,7 @@ class DLADMMNet(nn.Module):
                     En_L2O = self.self_active(E[-1] - self.ss2[k].mul(VVar), self.active_para1[k])
                     # Step 3
                     Tn_L2O = self.A.mm(Zn_L2O) + En_L2O - X
-                    Ln_L2O = L[-1] + self.beta1[k].mul(Tn_L2O)
+                    Ln_L2O = L[-1] + self.beta3[k].mul(Tn_L2O)
 
             if use_safeguard:
                 # L2O + safegaurding
@@ -391,9 +392,7 @@ if use_learned and use_safeguard:
 
 for j in range(n_test//batch_size):
     input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
-    input_bs = torch.from_numpy(input_bs)
-    # input_bs_var = torch.autograd.Variable(input_bs.cuda())
-    input_bs_var = input_bs.cuda()
+    input_bs = torch.from_numpy(input_bs).cuda()
     with torch.no_grad():
         if use_learned and use_safeguard:
             Z, E, L, T, count = model(input_bs_var)
