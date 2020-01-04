@@ -392,7 +392,7 @@ if use_learned and use_safeguard:
 
 for j in range(n_test//batch_size):
     input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
-    input_bs = torch.from_numpy(input_bs).cuda()
+    input_bs_var = torch.from_numpy(input_bs).cuda()
     with torch.no_grad():
         if use_learned and use_safeguard:
             Z, E, L, T, count = model(input_bs_var)
