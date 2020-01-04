@@ -130,7 +130,7 @@ n_test = 1000
 batch_size = 20
 layers = 20
 alpha = 0.5
-num_epoch = 100
+num_epoch = 50
 
 use_cuda = torch.cuda.is_available()
 print('==>>> use cuda' if use_cuda else '==>>> use cpu')
@@ -176,10 +176,12 @@ ts_index_loc = np.arange(1000)
 optimizer = None
 # loss_start_layer = layers - 1
 loss_start_layer = 0
+
 for epoch in range(num_epoch):
+
     print('---------------------------training---------------------------')
     # model.train()
-    learning_rate =  0.005 * 0.5 ** (epoch // 30)
+    learning_rate =  0.005 * 0.5 ** (epoch // 10)
     print('learning rate of this epoch {:.8f}'.format(learning_rate))
     # del optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
