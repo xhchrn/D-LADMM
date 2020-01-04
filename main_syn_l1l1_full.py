@@ -41,7 +41,7 @@ class DLADMMNet(nn.Module):
             self.beta3.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
             self.active_para.append(nn.Parameter(0.2 * torch.ones(self.d, 1, dtype=torch.float32)))
-            self.active_para1.append(nn.Parameter(1.0 * torch.ones(self.m, 1, dtype=torch.float32)))
+            self.active_para1.append(nn.Parameter(0.8 * torch.ones(self.m, 1, dtype=torch.float32)))
             self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         for m in self.modules():
@@ -49,7 +49,7 @@ class DLADMMNet(nn.Module):
                 #nn.init.kaiming_normal_(m.weight, mode='fan_out')
                 #m.weight.data.normal_(0, 1/20)
                 # m.weight = torch.nn.Parameter(self.A.t() + (1e-3)*torch.randn_like(self.A.t()))
-                m.weight = torch.nn.Parameter((self.A.t() + (1e-3)*torch.randn_like(self.A.t())) * 0.5)
+                m.weight = torch.nn.Parameter((self.A.t() + (1e-3)*torch.randn_like(self.A.t())) * 0.4)
                 #m.weight = torch.nn.Parameter(self.A.t())
 
 
@@ -202,12 +202,13 @@ for epoch in range(num_epoch):
                 continue
 
             loss.append(
-                alpha * torch.mean(torch.abs(Z[k])) +
+                alpha * torch.mean(torch.abs(Z[k]), dim=0).sum() +
                 # torch.mean(torch.abs(E[k]))
-                torch.mean(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])))
+                torch.mean(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).sum()
             )
 
-            total_loss = total_loss + loss[-1]
+            decay = 0.6 ** epoch if k < layers - 1 else 1.0
+            total_loss += loss[-1] * decay
 
         total_loss.backward()
         optimizer.step()
@@ -220,7 +221,7 @@ for epoch in range(num_epoch):
 
     # del loss, total_loss
 
-    torch.save(model.state_dict(), model.name()+'_l1l1_ltheta.pth')
+    torch.save(model.state_dict(), model.name()+'_l1l1_full.pth')
 
     print('---------------------------testing---------------------------')
     # model.eval()
