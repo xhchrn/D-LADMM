@@ -40,15 +40,16 @@ class DLADMMNet(nn.Module):
             self.beta2.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
             self.beta3.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(self.m, 1, dtype=torch.float32)))
-            self.active_para.append(nn.Parameter(0.025 * torch.ones(self.d, 1, dtype=torch.float32)))
-            self.active_para1.append(nn.Parameter(0.06 * torch.ones(self.m, 1, dtype=torch.float32)))
+            self.active_para.append(nn.Parameter(0.2 * torch.ones(self.d, 1, dtype=torch.float32)))
+            self.active_para1.append(nn.Parameter(1.0 * torch.ones(self.m, 1, dtype=torch.float32)))
             self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 #nn.init.kaiming_normal_(m.weight, mode='fan_out')
                 #m.weight.data.normal_(0, 1/20)
-                m.weight = torch.nn.Parameter(self.A.t() + (1e-3)*torch.randn_like(self.A.t()))
+                # m.weight = torch.nn.Parameter(self.A.t() + (1e-3)*torch.randn_like(self.A.t()))
+                m.weight = torch.nn.Parameter((self.A.t() + (1e-3)*torch.randn_like(self.A.t())) * 0.5)
                 #m.weight = torch.nn.Parameter(self.A.t())
 
 
