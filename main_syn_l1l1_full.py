@@ -122,133 +122,134 @@ def dual_gap(x, alpha):
     return out
 
 
-np.random.seed(1126)
-# os.environ["CUDA_VISIBLE_DEVICES"]="7"
-device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
-m, d, n = 250, 500, 10000
-n_test = 1000
-batch_size = 20
-layers = 20
-alpha = 0.5
-num_epoch = 50
+if __name__ == '__main__':
+    np.random.seed(1126)
+    # os.environ["CUDA_VISIBLE_DEVICES"]="7"
+    device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
+    m, d, n = 250, 500, 10000
+    n_test = 1000
+    batch_size = 20
+    layers = 20
+    alpha = 0.5
+    num_epoch = 50
 
-use_cuda = torch.cuda.is_available()
-print('==>>> use cuda' if use_cuda else '==>>> use cpu')
-print('==>>> batch size: {}'.format(batch_size))
-print('==>>> total trainning batch number: {}'.format(n//batch_size))
-print('==>>> total testing batch number: {}'.format(n_test//batch_size))
+    use_cuda = torch.cuda.is_available()
+    print('==>>> use cuda' if use_cuda else '==>>> use cpu')
+    print('==>>> batch size: {}'.format(batch_size))
+    print('==>>> total trainning batch number: {}'.format(n//batch_size))
+    print('==>>> total testing batch number: {}'.format(n_test//batch_size))
 
-syn_data = sio.loadmat('syn_data.mat')
-A_ori = syn_data['A']
-A_ori = A_ori.astype(np.float32) #*(1.0/18.0)
+    syn_data = sio.loadmat('syn_data.mat')
+    A_ori = syn_data['A']
+    A_ori = A_ori.astype(np.float32) #*(1.0/18.0)
 
-X = syn_data['train_x'].astype(np.float32)
-X = X.T
+    X = syn_data['train_x'].astype(np.float32)
+    X = X.T
 
-X_ts = syn_data['test_x'].astype(np.float32)
-X_ts = X_ts.T
+    X_ts = syn_data['test_x'].astype(np.float32)
+    X_ts = X_ts.T
 
-# X_gt = syn_data['gt_x'].astype(np.float32)
-# X_gt = X_gt.T
-
-
-# init parameters
-Z0 = 1.0 /d * torch.rand(d, batch_size, dtype=torch.float32)
-E0 = torch.zeros(m, batch_size, dtype=torch.float32)
-L0 = torch.zeros(m, batch_size, dtype=torch.float32)
-A_tensor = torch.from_numpy(A_ori)
+    # X_gt = syn_data['gt_x'].astype(np.float32)
+    # X_gt = X_gt.T
 
 
-model = DLADMMNet(
-    m=m, n=n, d=d, batch_size=batch_size, A=A_tensor,
-    Z0=Z0, E0=E0, L0=L0, layers=layers)
-A_tensor = A_tensor.cuda()
-if use_cuda:
-    model = model.cuda()
-# model = nn.DataParallel(model, device_ids=device_ids)
-print(model)
+    # init parameters
+    Z0 = 1.0 /d * torch.rand(d, batch_size, dtype=torch.float32)
+    E0 = torch.zeros(m, batch_size, dtype=torch.float32)
+    L0 = torch.zeros(m, batch_size, dtype=torch.float32)
+    A_tensor = torch.from_numpy(A_ori)
 
-criterion = nn.MSELoss()
-index_loc = np.arange(10000)
-ts_index_loc = np.arange(1000)
-# psnr_value = 0
-# best_pic = np.zeros(shape=(256,1024))
-optimizer = None
-# loss_start_layer = layers - 1
-loss_start_layer = 0
 
-for epoch in range(num_epoch):
+    model = DLADMMNet(
+        m=m, n=n, d=d, batch_size=batch_size, A=A_tensor,
+        Z0=Z0, E0=E0, L0=L0, layers=layers)
+    A_tensor = A_tensor.cuda()
+    if use_cuda:
+        model = model.cuda()
+    # model = nn.DataParallel(model, device_ids=device_ids)
+    print(model)
 
-    print('---------------------------training---------------------------')
-    # model.train()
-    learning_rate =  0.005 * 0.5 ** (epoch // 10)
-    print('learning rate of this epoch {:.8f}'.format(learning_rate))
-    # del optimizer
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    np.random.shuffle(index_loc)
-    for j in range(n//batch_size):
-        optimizer.zero_grad()
-        address = index_loc[np.arange(j*batch_size,(j+1)*batch_size)]
-        input_bs = X[:, address]
-        input_bs = torch.from_numpy(input_bs)
-        input_bs_var = input_bs.cuda()
-        [Z, E, L] = model(input_bs_var)
+    criterion = nn.MSELoss()
+    index_loc = np.arange(10000)
+    ts_index_loc = np.arange(1000)
+    # psnr_value = 0
+    # best_pic = np.zeros(shape=(256,1024))
+    optimizer = None
+    # loss_start_layer = layers - 1
+    loss_start_layer = 0
 
-        loss = list()
-        total_loss = 0
+    for epoch in range(num_epoch):
 
-        for k in range(layers):
-            if k < loss_start_layer:
-                loss.append(0.0)
-                continue
-
-            loss.append(
-                alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
-                # torch.mean(torch.abs(E[k]))
-                torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
-            )
-
-            decay = 0.6 ** epoch if k < layers - 1 else 1.0
-            total_loss += loss[-1] * decay
-
-        total_loss.backward()
-        optimizer.step()
-        if j == 0 or (j+1) % 100 == 0:
-            # print('==>>> epoch: {},loss10: {:.6f}'.format(epoch, loss10))
-            print('==>> epoch: {} [{}/{}]'.format(epoch+1, j+1, n//batch_size))
-            for k in range(loss_start_layer, layers):
-                print('loss{}:{:.3f}'.format(k + 1, loss[k]), end=' ')
-            print(" ")
-
-    # del loss, total_loss
-
-    torch.save(model.state_dict(), model.name()+'_l1l1_full.pth')
-
-    print('---------------------------testing---------------------------')
-    # model.eval()
-    l1l1_values = torch.zeros(layers).cuda()
-    for j in range(n_test//batch_size):
-        input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
-        input_bs = torch.from_numpy(input_bs)
-        input_bs_var = input_bs.cuda()
-        with torch.no_grad():
+        print('---------------------------training---------------------------')
+        # model.train()
+        learning_rate =  0.005 * 0.5 ** (epoch // 10)
+        print('learning rate of this epoch {:.8f}'.format(learning_rate))
+        # del optimizer
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+        np.random.shuffle(index_loc)
+        for j in range(n//batch_size):
+            optimizer.zero_grad()
+            address = index_loc[np.arange(j*batch_size,(j+1)*batch_size)]
+            input_bs = X[:, address]
+            input_bs = torch.from_numpy(input_bs)
+            input_bs_var = input_bs.cuda()
             [Z, E, L] = model(input_bs_var)
 
-        for jj in range(layers):
-            ################ l1l1_values[jj] = l1l1_values[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
-            ################ l1l1_values[jj] = l1l1_values[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
-            ################ l1l1_values[jj] = l1l1_values[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
-            ################ l1l1_values[jj] = l1l1_values[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
-            # NOTE: TODO: Add normalization after talking with Howard
-            l1l1_values[jj] += alpha * torch.sum(torch.abs(Z[jj])) + \
-                torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
+            loss = list()
+            total_loss = 0
 
-    l1l1_values = l1l1_values / n_test
-    print('==>> epoch: {}'.format(epoch+1))
-    for k in range(layers):
-        # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
-        print('Loss{}:{:.3f}'.format(k+1, l1l1_values[k]), end=' ')
-    print(" ")
+            for k in range(layers):
+                if k < loss_start_layer:
+                    loss.append(0.0)
+                    continue
 
-    torch.cuda.empty_cache()
+                loss.append(
+                    alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
+                    # torch.mean(torch.abs(E[k]))
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
+                )
+
+                decay = 0.6 ** epoch if k < layers - 1 else 1.0
+                total_loss += loss[-1] * decay
+
+            total_loss.backward()
+            optimizer.step()
+            if j == 0 or (j+1) % 100 == 0:
+                # print('==>>> epoch: {},loss10: {:.6f}'.format(epoch, loss10))
+                print('==>> epoch: {} [{}/{}]'.format(epoch+1, j+1, n//batch_size))
+                for k in range(loss_start_layer, layers):
+                    print('loss{}:{:.3f}'.format(k + 1, loss[k]), end=' ')
+                print(" ")
+
+        # del loss, total_loss
+
+        torch.save(model.state_dict(), model.name()+'_l1l1_full.pth')
+
+        print('---------------------------testing---------------------------')
+        # model.eval()
+        l1l1_values = torch.zeros(layers).cuda()
+        for j in range(n_test//batch_size):
+            input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
+            input_bs = torch.from_numpy(input_bs)
+            input_bs_var = input_bs.cuda()
+            with torch.no_grad():
+                [Z, E, L] = model(input_bs_var)
+
+            for jj in range(layers):
+                ################ l1l1_values[jj] = l1l1_values[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]), reduction='elementwise_mean')
+                ################ l1l1_values[jj] = l1l1_values[jj] + F.mse_loss(255 * input_gt_var.cuda(), 255 * torch.mm(A_tensor, Z[jj]))
+                ################ l1l1_values[jj] = l1l1_values[jj] + ((255 * input_gt_var.cuda() - 255 * torch.mm(A_tensor, Z[jj]))**2).mean()
+                ################ l1l1_values[jj] = l1l1_values[jj] + (alpha * torch.mean(torch.abs(Z[jj])) + torch.mean(torch.abs(E[jj])))
+                # NOTE: TODO: Add normalization after talking with Howard
+                l1l1_values[jj] += alpha * torch.sum(torch.abs(Z[jj])) + \
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
+
+        l1l1_values = l1l1_values / n_test
+        print('==>> epoch: {}'.format(epoch+1))
+        for k in range(layers):
+            # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+            print('Loss{}:{:.3f}'.format(k+1, l1l1_values[k]), end=' ')
+        print(" ")
+
+        torch.cuda.empty_cache()
 
