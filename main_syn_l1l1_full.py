@@ -211,9 +211,9 @@ for epoch in range(num_epoch):
 
         total_loss.backward()
         optimizer.step()
-        if (j+1) % 100 == 0:
+        if j == 0 or (j+1) % 100 == 0:
             # print('==>>> epoch: {},loss10: {:.6f}'.format(epoch, loss10))
-            print('==>> epoch: {} [{}/{}]'.format(epoch+1, j, n//batch_size))
+            print('==>> epoch: {} [{}/{}]'.format(epoch+1, j+1, n//batch_size))
             for k in range(loss_start_layer, layers):
                 print('loss{}:{:.3f}'.format(k + 1, loss[k]), end=' ')
             print(" ")
