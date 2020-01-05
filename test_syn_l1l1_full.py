@@ -196,7 +196,7 @@ class DLADMMNet(nn.Module):
                     En_L2O = self.self_active(self.E0 - self.ss2[k].mul(VVar), self.active_para1[k])
                     # Step 3
                     Tn_L2O = self.A.mm(Zn_L2O) + En_L2O - X
-                    Ln_L2O = self.L0 + self.beta1[k].mul(Tn_L2O)
+                    Ln_L2O = self.L0 + self.beta3[k].mul(Tn_L2O)
 
             else :
                 # Classic algorithm
