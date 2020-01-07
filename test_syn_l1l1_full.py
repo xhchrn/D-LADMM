@@ -123,7 +123,7 @@ class DLADMMNet(nn.Module):
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
         ss1  = kwargs.get('ss1', 0.999 / self.L)
-        ss2  = kwargs.get('ss2', 0.999)
+        ss2  = kwargs.get('ss2', 0.3)
         # beta = 1.0 / self.L.sqrt()
         # ss1 = 1.0 / self.L.sqrt()
         # ss2 = 0.5
@@ -152,12 +152,14 @@ class DLADMMNet(nn.Module):
     def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
         kwargs['beta'] = 1.0
         kwargs['ss1'] = 0.999 / self.L
-        kwargs['ss2'] = 0.999
+        kwargs['ss2'] = 0.3
 
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
         c1 = kwargs['beta'] * kwargs['ss2']
         assert c1 < 1
+        # c = 0.0
         c = sqrt(c1 / (1 - c1))
+        # return kwargs['beta'] * Tn, c * (En - 2*Ek + Ep), torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
         Sn = torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
 
         return Sn
@@ -176,8 +178,12 @@ class DLADMMNet(nn.Module):
         if use_learned and use_safeguard:
             # NOTE: only take Tn for safegaurding
             S0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+            # Sp1, Sp2, S0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
+            # print(self.two_norm(Sp1)[:10]**2)
+            # print(self.two_norm(Sp2)[:10]**2)
             # mu_k = self.two_norm(self.KM(self.Z0, self.E0, self.L0, T[-1], X)[-2])
             mu_k = self.two_norm(S0)
+            # print(mu_k)
             mu_updater = mu_updater_dict[mu_k_method](mu_k, mu_k_param)
             sg_count = np.zeros(self.layers)
 
@@ -219,9 +225,13 @@ class DLADMMNet(nn.Module):
                 assert use_learned
                 Ep         = self.E0 if k == 0 else E[-1]
                 S_L2O      = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
+                # Sp1_L2O, Sp2_L2O, S_L2O = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
                 S_L2O_norm = self.two_norm(S_L2O)
-                # print(S_L2O_norm)
-                # print(mu_k)
+                # print(self.two_norm(Sp1_L2O)[:10]**2)
+                # print(self.two_norm(Sp2_L2O)[:10]**2)
+                # print(S_L2O_norm[:10])
+                # print(mu_k[:10])
+                # exit()
                 # print(" ")
                 bool_term       = (S_L2O_norm < (1.0-delta) * mu_k).float()
                 mu_k            = mu_updater.step(S_L2O_norm, bool_term)
