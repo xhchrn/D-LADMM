@@ -228,7 +228,7 @@ if __name__ == '__main__':
 
         # del loss, total_loss
 
-        torch.save(model.state_dict(), model.name()+'_l1l1_full.pth')
+        torch.save(model.state_dict(), model.name()+'_l1l1-sl2_full.pth')
 
         print('---------------------------testing---------------------------')
         # model.eval()
