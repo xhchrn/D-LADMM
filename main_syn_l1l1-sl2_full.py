@@ -20,6 +20,7 @@ class DLADMMNet(nn.Module):
         self.n = n
         self.d = d
         self.A = A.cuda()
+        self.At = self.A.t()
         self.Z0 = Z0.cuda()
         self.E0 = E0.cuda()
         self.L0 = L0.cuda()
