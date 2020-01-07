@@ -25,6 +25,8 @@ class DLADMMNet(nn.Module):
         self.L0 = L0.cuda()
         self.layers = layers
 
+        self.A_np = A.cpu().numpy()
+        self.L = (np.linalg.norm(np.matmul(self.A_np.transpose(), self.A_np), ord=2) * torch.ones(1,1)).float().cuda()
 
         self.beta1 = nn.ParameterList()
         self.beta2 = nn.ParameterList()
