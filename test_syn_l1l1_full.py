@@ -115,8 +115,8 @@ class DLADMMNet(nn.Module):
         return F.relu(x - thershold) - F.relu(-1.0 * x - thershold)
 
 
-    def two_norm(self, z):
-        norm_array = (z ** 2).sum(dim=0).sqrt()
+    def two_norm(self, z, dim=0):
+        norm_array = (z ** 2).sum(dim=dim).sqrt()
         return norm_array
 
 
