@@ -246,7 +246,7 @@ class DLADMMNet(nn.Module):
 
                 if k == layers - 1:
                     bool_term_binary = (S_L2O_norm < (1.0-delta) * mu_k)
-                    bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
+                    # bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
                     Zused_L2O = Zn_L2O[:,bool_term_binary]
                     Zused_KM  = Zn_KM[:,~bool_term_binary]
                     l1l1_L2O = (
