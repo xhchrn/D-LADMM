@@ -261,8 +261,8 @@ class DLADMMNet(nn.Module):
                         alpha * torch.sum(torch.abs(Zused_KM), dim=0).mean() +
                         torch.sum(torch.abs(Xused_KM - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
                     ) if num_KM > 0 else 0.0
-                    print('L2O loss: {} with {} samples'.format(l1l1_L2O, num_L2O))
-                    print('KM loss: {} with {} samples'.format(l1l1_KM, num_KM))
+                    print('L2O loss: {} with {:d} samples'.format(l1l1_L2O, num_L2O))
+                    print('KM loss: {} with {:d} samples'.format(l1l1_KM, num_KM))
 
                 sg_count[k] = bool_complement.sum().cpu().item()
 
