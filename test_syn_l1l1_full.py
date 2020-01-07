@@ -249,13 +249,15 @@ class DLADMMNet(nn.Module):
                     # bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
                     Zused_L2O = Zn_L2O[:,bool_term_binary]
                     Zused_KM  = Zn_KM[:,~bool_term_binary]
+                    Xused_L2O = X[:,bool_term_binary]
+                    Xused_KM  = X[:,~bool_term_binary]
                     l1l1_L2O = (
                         alpha * torch.sum(torch.abs(Zused_L2O), dim=0).mean() +
-                        torch.sum(torch.abs(X - torch.mm(A_tensor, Zused_L2O)), dim=0).mean()
+                        torch.sum(torch.abs(Xused_L2O - torch.mm(A_tensor, Zused_L2O)), dim=0).mean()
                     )
                     l1l1_KM = (
                         alpha * torch.sum(torch.abs(Zused_KM), dim=0).mean() +
-                        torch.sum(torch.abs(X - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
+                        torch.sum(torch.abs(Xused_KM - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
                     )
                     print('L2O loss: {}'.format(l1l1_L2O))
                     print('KM loss: {}'.format(l1l1_KM))
