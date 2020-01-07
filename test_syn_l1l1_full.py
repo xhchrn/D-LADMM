@@ -223,8 +223,8 @@ class DLADMMNet(nn.Module):
             if use_safeguard:
                 # L2O + safegaurding
                 assert use_learned
-                Ep         = self.E0 if k == 0 else E[-1]
-                S_L2O      = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
+                Ep    = self.E0 if k == 0 else E[-1]
+                S_L2O = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
                 # Sp1_L2O, Sp2_L2O, S_L2O = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
                 S_L2O_norm = self.two_norm(S_L2O)
                 # print(self.two_norm(Sp1_L2O)[:10]**2)
@@ -243,6 +243,22 @@ class DLADMMNet(nn.Module):
                 E.append  (bool_term * En_L2O   + bool_complement * En_KM)
                 T.append  (bool_term * Tn_L2O   + bool_complement * Tn_KM)
                 L.append  (bool_term * Ln_L2O   + bool_complement * Ln_KM)
+
+                if k == layers - 1:
+                    bool_term_binary = (S_L2O_norm < (1.0-delta) * mu_k)
+                    bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
+                    Zused_L2O = Zn_L2O[:,bool_term_binary]
+                    Zused_KM  = Zn_KM[:,~bool_term_binary]
+                    l1l1_L2O = (
+                        alpha * torch.sum(torch.abs(Zused_L2O), dim=0).mean() +
+                        torch.sum(torch.abs(X - torch.mm(A_tensor, Zused_L2O)), dim=0).mean()
+                    )
+                    l1l1_KM = (
+                        alpha * torch.sum(torch.abs(Zused_KM), dim=0).mean() +
+                        torch.sum(torch.abs(X - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
+                    )
+                    print('L2O loss: {}'.format(l1l1_L2O))
+                    print('KM loss: {}'.format(l1l1_KM))
 
                 sg_count[k] = bool_complement.sum().cpu().item()
 
