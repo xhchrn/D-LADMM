@@ -249,8 +249,8 @@ class DLADMMNet(nn.Module):
                     # bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
                     Zused_L2O = Zn_L2O[:,bool_term_binary]
                     Zused_KM  = Zn_KM[:,~bool_term_binary]
-                    num_L2O = bool_term_binary.float().sum()
-                    num_KM  = (~bool_term_binary).float().sum()
+                    num_L2O = int(bool_term_binary.float().sum())
+                    num_KM  = int((~bool_term_binary).float().sum())
                     Xused_L2O = X[:,bool_term_binary]
                     Xused_KM  = X[:,~bool_term_binary]
                     l1l1_L2O = (
