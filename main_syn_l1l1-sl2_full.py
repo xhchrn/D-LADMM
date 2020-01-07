@@ -110,6 +110,53 @@ class DLADMMNet(nn.Module):
         return "DLADMMNet"
 
 
+    def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
+        beta = kwargs.get('beta', 1.0)
+        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss2  = kwargs.get('ss2', 0.3)
+        # beta = 1.0 / self.L.sqrt()
+        # ss1 = 1.0 / self.L.sqrt()
+        # ss2 = 0.5
+
+        # NOTE: T^k = A*Z^k + E^k - X
+        Varn = Lk + beta * Tk
+        Zn = self.self_active(
+            Zk - ss1 * self.At.mm(Varn),
+            ss1 * alpha
+        )
+
+        # NOTE: \hat{T}^k = A*Z^{k+1} + Ek - X
+        TTn = self.A.mm(Zn) + Ek - X
+        En = self.self_active(
+            Ek - ss2 * (Lk + beta * TTn),
+            ss2
+        )
+
+        # NOTE: T^{k+1} = A*Z^{k+1} + E^{k+1} - X
+        Tn = self.A.mm(Zn) + En - X
+        Ln = Lk + beta * Tn
+
+        return Varn, Zn, En, Tn, Ln
+
+
+    def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
+        kwargs['beta'] = 1.0
+        kwargs['ss1'] = 0.999 / self.L
+        kwargs['ss2'] = 0.3
+
+        Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
+        c1 = kwargs['beta'] * kwargs['ss2']
+        assert c1 < 1
+        c = sqrt(c1 / (1 - c1))
+        Sn = torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
+
+        return Sn
+
+
+    def squared_two_norm(self, z, dim=0):
+        return (z ** 2).sum(dim=dim)
+
+
 def calc_PSNR(x1, x2):
     x1 = x1 * 255.0
     x2 = x2 * 255.0
@@ -196,8 +243,8 @@ if __name__ == '__main__':
             input_bs_var = input_bs.cuda()
             [Z, E, L, T] = model(input_bs_var)
 
-            print(len(Z), len(E), len(L), len(T))
-            exit()
+            # print(len(Z), len(E), len(L), len(T))
+            # exit()
 
             loss = list()
             total_loss = 0
@@ -207,11 +254,14 @@ if __name__ == '__main__':
                     loss.append(0.0)
                     continue
 
+                Ep = model.E0 if k == 0 else E[k-1]
+                sl2_loss = model.squared_two_norm(model.S(Z[k], E[k], L[k], T[k+1], Ep)).mean()
+
                 loss.append(
                     alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
                     # torch.mean(torch.abs(E[k]))
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean() +
-                    lam * 0.0
+                    lam * sl2_loss
                 )
 
                 decay = 0.6 ** epoch if k < layers - 1 else 1.0
