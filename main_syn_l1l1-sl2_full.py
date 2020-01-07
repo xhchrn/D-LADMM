@@ -9,7 +9,7 @@ import torch.optim as optim
 import numpy as np
 import scipy.io as sio
 import scipy.misc
-
+from math import sqrt
 
 
 ## network definition
