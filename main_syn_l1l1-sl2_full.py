@@ -255,7 +255,8 @@ if __name__ == '__main__':
                     continue
 
                 Ep = model.E0 if k == 0 else E[k-1]
-                sl2_loss = model.squared_two_norm(model.S(Z[k], E[k], L[k], T[k+1], Ep)).mean()
+                sl2_loss = model.squared_two_norm(
+                    model.S(Z[k], E[k], L[k], T[k+1], input_bs_var, Ep)).mean()
 
                 loss.append(
                     alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
