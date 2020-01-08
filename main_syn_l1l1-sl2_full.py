@@ -182,7 +182,7 @@ if __name__ == '__main__':
     layers = 20
     alpha = 0.01
     num_epoch = 50
-    lam = 0.01 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
+    lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
     use_cuda = torch.cuda.is_available()
     print('==>>> use cuda' if use_cuda else '==>>> use cpu')
