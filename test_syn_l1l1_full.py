@@ -29,6 +29,7 @@ parser.add_argument('--objective', type=str, default='NMSE', help='objective for
 parser.add_argument('-p', '--p', type=float, default=0.2, help='p in the Bernoulli distribution')
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
+parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
 
 args = parser.parse_args()
 
