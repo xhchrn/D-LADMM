@@ -130,7 +130,7 @@ if __name__ == '__main__':
     n_test = 1000
     batch_size = 20
     layers = 20
-    alpha = 0.5
+    alpha = 0.01
     num_epoch = 50
 
     use_cuda = torch.cuda.is_available()

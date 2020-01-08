@@ -180,7 +180,7 @@ if __name__ == '__main__':
     n_test = 1000
     batch_size = 20
     layers = 20
-    alpha = 0.5
+    alpha = 0.01
     num_epoch = 50
     lam = 0.01 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 

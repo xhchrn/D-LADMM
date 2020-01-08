@@ -127,7 +127,7 @@ m, d, n = 250, 500, 10000
 n_test = 1000
 batch_size = 20
 layers = 20
-alpha = 0.5
+alpha = 0.01
 num_epoch = 100
 
 use_cuda = torch.cuda.is_available()
