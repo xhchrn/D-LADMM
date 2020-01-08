@@ -122,7 +122,7 @@ class DLADMMNet(nn.Module):
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
-        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss1  = kwargs.get('ss1', 0.5 / self.L)
         ss2  = kwargs.get('ss2', 0.3)
         # beta = 1.0 / self.L.sqrt()
         # ss1 = 1.0 / self.L.sqrt()
@@ -151,8 +151,11 @@ class DLADMMNet(nn.Module):
 
     def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
         kwargs['beta'] = 1.0
-        kwargs['ss1'] = 0.999 / self.L
+        kwargs['ss1'] = 0.5 / self.L
         kwargs['ss2'] = 0.3
+        k = kwargs.get('k', 0)
+        if k == 15:
+            kwargs['ss2'] = 0.9
 
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
         c1 = kwargs['beta'] * kwargs['ss2']
@@ -244,25 +247,25 @@ class DLADMMNet(nn.Module):
                 T.append  (bool_term * Tn_L2O   + bool_complement * Tn_KM)
                 L.append  (bool_term * Ln_L2O   + bool_complement * Ln_KM)
 
-                if k == layers - 1:
-                    bool_term_binary = (S_L2O_norm < (1.0-delta) * mu_k)
-                    # bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
-                    Zused_L2O = Zn_L2O[:,bool_term_binary]
-                    Zused_KM  = Zn_KM[:,~bool_term_binary]
-                    num_L2O = int(bool_term_binary.float().sum())
-                    num_KM  = int((~bool_term_binary).float().sum())
-                    Xused_L2O = X[:,bool_term_binary]
-                    Xused_KM  = X[:,~bool_term_binary]
-                    l1l1_L2O = (
-                        alpha * torch.sum(torch.abs(Zused_L2O), dim=0).mean() +
-                        torch.sum(torch.abs(Xused_L2O - torch.mm(A_tensor, Zused_L2O)), dim=0).mean()
-                    ) if num_L2O > 0 else 0.0
-                    l1l1_KM = (
-                        alpha * torch.sum(torch.abs(Zused_KM), dim=0).mean() +
-                        torch.sum(torch.abs(Xused_KM - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
-                    ) if num_KM > 0 else 0.0
-                    print('L2O loss: {} with {:d} samples'.format(l1l1_L2O, num_L2O))
-                    print('KM loss: {} with {:d} samples'.format(l1l1_KM, num_KM))
+                # if k == layers - 1:
+                    # bool_term_binary = (S_L2O_norm < (1.0-delta) * mu_k)
+                    # # bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
+                    # Zused_L2O = Zn_L2O[:,bool_term_binary]
+                    # Zused_KM  = Zn_KM[:,~bool_term_binary]
+                    # num_L2O = int(bool_term_binary.float().sum())
+                    # num_KM  = int((~bool_term_binary).float().sum())
+                    # Xused_L2O = X[:,bool_term_binary]
+                    # Xused_KM  = X[:,~bool_term_binary]
+                    # l1l1_L2O = (
+                        # alpha * torch.sum(torch.abs(Zused_L2O), dim=0).mean() +
+                        # torch.sum(torch.abs(Xused_L2O - torch.mm(A_tensor, Zused_L2O)), dim=0).mean()
+                    # ) if num_L2O > 0 else 0.0
+                    # l1l1_KM = (
+                        # alpha * torch.sum(torch.abs(Zused_KM), dim=0).mean() +
+                        # torch.sum(torch.abs(Xused_KM - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
+                    # ) if num_KM > 0 else 0.0
+                    # print('L2O loss: {} with {:d} samples'.format(l1l1_L2O, num_L2O))
+                    # print('KM loss: {} with {:d} samples'.format(l1l1_KM, num_KM))
 
                 sg_count[k] = bool_complement.sum().cpu().item()
 
@@ -445,7 +448,8 @@ for j in range(n_test//batch_size):
             elif objective == 'S-L2':
                 # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
                 Ep = model.E0 if jj == 0 else E[jj-1]
-                Sjj = model.S(Z[jj], E[jj], L[jj], T[jj], input_bs_var, Ep)
+                # Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep, k=jj)
+                Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep)
                 sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
         if use_learned and use_safeguard:
             sg_count[jj] += count[jj]
