@@ -258,6 +258,7 @@ if __name__ == '__main__':
                     continue
 
                 if k == layers - 1:
+                    Ep = E[k-1] if k > 0 else E0
                     sl2_loss = model.squared_two_norm(
                         model.S(Z[k], E[k], L[k], T[k+1], input_bs_var, Ep)).mean()
                 else:
