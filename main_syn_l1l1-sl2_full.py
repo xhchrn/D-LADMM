@@ -180,7 +180,7 @@ if __name__ == '__main__':
     n_test = 1000
     batch_size = 20
     layers = 20
-    alpha = 0.01
+    alpha = 0.001
     num_epoch = 50
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
@@ -285,7 +285,7 @@ if __name__ == '__main__':
 
         # del loss, total_loss
 
-        torch.save(model.state_dict(), model.name()+'_l1l1-sl2_full.pth')
+        torch.save(model.state_dict(), model.name()+'_l1l1-sl2_full_alpha{}.pth'.format(alpha))
 
         print('---------------------------testing---------------------------')
         # model.eval()
