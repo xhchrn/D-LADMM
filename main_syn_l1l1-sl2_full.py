@@ -115,7 +115,7 @@ class DLADMMNet(nn.Module):
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
-        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss1  = kwargs.get('ss1', 0.5 / self.L)
         ss2  = kwargs.get('ss2', 0.3)
         # beta = 1.0 / self.L.sqrt()
         # ss1 = 1.0 / self.L.sqrt()
@@ -144,7 +144,7 @@ class DLADMMNet(nn.Module):
 
     def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
         kwargs['beta'] = 1.0
-        kwargs['ss1'] = 0.999 / self.L
+        kwargs['ss1'] = 0.5 / self.L
         kwargs['ss2'] = 0.3
 
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
@@ -257,9 +257,11 @@ if __name__ == '__main__':
                     loss.append(0.0)
                     continue
 
-                Ep = model.E0 if k == 0 else E[k-1]
-                sl2_loss = model.squared_two_norm(
-                    model.S(Z[k], E[k], L[k], T[k+1], input_bs_var, Ep)).mean()
+                if k == layers - 1:
+                    sl2_loss = model.squared_two_norm(
+                        model.S(Z[k], E[k], L[k], T[k+1], input_bs_var, Ep)).mean()
+                else:
+                    sl2_loss = 0.0
 
                 loss.append(
                     alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +

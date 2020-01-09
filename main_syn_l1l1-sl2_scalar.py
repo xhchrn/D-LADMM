@@ -115,7 +115,7 @@ class DLADMMNet(nn.Module):
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
-        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss1  = kwargs.get('ss1', 0.5 / self.L)
         ss2  = kwargs.get('ss2', 0.3)
         # beta = 1.0 / self.L.sqrt()
         # ss1 = 1.0 / self.L.sqrt()
@@ -144,7 +144,7 @@ class DLADMMNet(nn.Module):
 
     def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
         kwargs['beta'] = 1.0
-        kwargs['ss1'] = 0.999 / self.L
+        kwargs['ss1'] = 0.5 / self.L
         kwargs['ss2'] = 0.3
 
         Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     n_test = 1000
     batch_size = 20
     layers = 20
-    alpha = 0.01
+    alpha = 0.001
     num_epoch = 50
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
@@ -257,9 +257,11 @@ if __name__ == '__main__':
                     loss.append(0.0)
                     continue
 
-                Ep = model.E0 if k == 0 else E[k-1]
-                sl2_loss = model.squared_two_norm(
-                    model.S(Z[k], E[k], L[k], T[k+1], input_bs_var, Ep)).mean()
+                if k == layers - 1:
+                    sl2_loss = model.squared_two_norm(
+                        model.S(Z[k], E[k], L[k], T[k+1], input_bs_var, Ep)).mean()
+                else:
+                    sl2_loss = 0.0
 
                 loss.append(
                     alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
@@ -282,7 +284,7 @@ if __name__ == '__main__':
 
         # del loss, total_loss
 
-        torch.save(model.state_dict(), model.name()+'_l1l1-sl2_scalar-alpha{}.pth'.format(alpha))
+        torch.save(model.state_dict(), model.name()+'_l1l1-sl2_scalar_alpha{}.pth'.format(alpha))
 
         print('---------------------------testing---------------------------')
         # model.eval()
