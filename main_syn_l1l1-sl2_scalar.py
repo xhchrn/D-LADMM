@@ -182,7 +182,7 @@ if __name__ == '__main__':
     batch_size = 20
     layers = 20
     alpha = 0.001
-    num_epoch = 50
+    num_epoch = 30
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
     use_cuda = torch.cuda.is_available()
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     # optimizer = None
     learning_rate =  0.005
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40], gamma=0.5)
+    scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40], gamma=0.2)
     # loss_start_layer = layers - 1
     loss_start_layer = 0
 
