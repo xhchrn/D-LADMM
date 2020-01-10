@@ -6,6 +6,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.optim.lr_scheduler import MultiStepLR
 import numpy as np
 import scipy.io as sio
 import scipy.misc
@@ -225,18 +226,20 @@ if __name__ == '__main__':
     ts_index_loc = np.arange(1000)
     # psnr_value = 0
     # best_pic = np.zeros(shape=(256,1024))
-    optimizer = None
+    # optimizer = None
+    learning_rate =  0.005
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40], gamma=0.5)
     # loss_start_layer = layers - 1
     loss_start_layer = 0
 
     for epoch in range(num_epoch):
-
         print('---------------------------training---------------------------')
         # model.train()
-        learning_rate =  0.005 * 0.5 ** (epoch // 10)
+        # learning_rate =  0.005 * 0.5 ** (epoch // 10)
         print('learning rate of this epoch {:.8f}'.format(learning_rate))
         # del optimizer
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+        # optimizer = optim.Adam(model.parameters(), lr=learning_rate) if epoch<20 else optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
         np.random.shuffle(index_loc)
         for j in range(n//batch_size):
             optimizer.zero_grad()
@@ -312,6 +315,9 @@ if __name__ == '__main__':
             # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
             print('Loss{}:{:.3f}'.format(k+1, l1l1_values[k]), end=' ')
         print(" ")
+
+        # Learning rate scheduler takes one step
+        scheduler.step()
 
         torch.cuda.empty_cache()
 
