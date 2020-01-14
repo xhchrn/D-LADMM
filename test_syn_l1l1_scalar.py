@@ -238,6 +238,18 @@ class DLADMMNet(nn.Module):
                 # exit()
                 # print(" ")
                 bool_term       = (S_L2O_norm < (1.0-delta) * mu_k).float()
+
+                # if k == 2:
+                    # bool_comp_binary = ~bool_term.bool()
+                    # num_sg  = int((bool_comp_binary).float().sum())
+                    # if num_sg > 0:
+                        # SL2_sg  = S_L2O_norm[bool_comp_binary].mean()
+                        # mu_k_sg = mu_k[bool_comp_binary].mean()
+                        # print('Mean SL2 of L2O iter: {} with {:d} samples'.format(SL2_sg, num_sg))
+                        # print('Mean mu_k: {} with {:d} samples'.format(mu_k_sg, num_sg))
+                    # else:
+                        # print('Safeguard not activated')
+
                 mu_k            = mu_updater.step(S_L2O_norm, bool_term)
                 bool_term       = bool_term.reshape(1, bool_term.shape[0])
                 bool_complement = 1.0 - bool_term
