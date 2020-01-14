@@ -1,0 +1,111 @@
+INFO:root:==>>> use cuda
+INFO:root:==>>> batch size: 20
+INFO:root:==>>> total testing batch number: 50
+INFO:root: 
+INFO:root:---------------------------testing---------------------------
+INFO:root:L2O loss: 39.26103973388672 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.69959259033203 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.95719909667969 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 42.722991943359375 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 38.414466857910156 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.09312438964844 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.550743103027344 with 19 samples
+INFO:root:KM loss: 36.65381622314453 with 1 samples
+INFO:root:L2O loss: 39.569190979003906 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.1489143371582 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.6379280090332 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.1759033203125 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.206912994384766 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.35966110229492 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.05816650390625 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.53413391113281 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.70635223388672 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.64628982543945 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.9456672668457 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.63139724731445 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 37.057334899902344 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.287513732910156 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.94469451904297 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.53572082519531 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.38373947143555 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.566795349121094 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 38.95587158203125 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.65916442871094 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.69443130493164 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.816192626953125 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.15078353881836 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.420509338378906 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 38.006988525390625 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.584381103515625 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.037811279296875 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.10258483886719 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.06022644042969 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 38.19340896606445 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.21672439575195 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 37.93675994873047 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.08899688720703 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.92735290527344 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.83036804199219 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.223907470703125 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 37.99668884277344 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.965606689453125 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 39.168827056884766 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 35.9360466003418 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.55073547363281 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 40.72174072265625 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:L2O loss: 41.77556228637695 with 20 samples
+INFO:root:KM loss: 0.0 with 0 samples
+INFO:root:MSE values:
+INFO:root:77.122, 65.743, 56.450, 54.000, 52.851, 51.384, 50.646, 50.456, 50.042, 49.692, 49.107, 48.455, 47.431, 43.873, 44.115, 42.737, 41.941, 41.017, 40.214, 39.839
+INFO:root:******Best MSE: 39.839
+
+INFO:root:Sg Pcts:
+INFO:root:0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001
