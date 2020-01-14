@@ -1,0 +1,9 @@
+INFO:root:==>>> use cuda
+INFO:root:==>>> batch size: 20
+INFO:root:==>>> total testing batch number: 50
+INFO:root: 
+INFO:root:---------------------------testing---------------------------
+INFO:root:MSE values:
+INFO:root:166.611, 62.920, 39.427, 29.043, 19.999, 13.260, 9.746, 9.359, 9.233, 8.816, 7.433, 5.968, 3.959, 2.742, 1.633, 1.074, 0.867, 0.791, 0.735, 0.673
+INFO:root:******Best MSE: 0.673
+
