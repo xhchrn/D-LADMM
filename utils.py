@@ -12,5 +12,5 @@ def setup_logger(log_file):
     return lgr
 
 def my_str(obj):
-    return '{:.3f}'.format(obj)
+    return '{:f}'.format(obj)
 
