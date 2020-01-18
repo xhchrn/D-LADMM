@@ -4,6 +4,7 @@ import scipy.io as sio
 
 parser = argparse.ArgumentParser(description='Test LADMM with synthetic data')
 parser.add_argument('-p', type=float)
+parser.add_argument('-m', type=float, default=0.0)
 parser.add_argument('-s', type=float)
 parser.add_argument('--A-file', type=str, default='./syn_data.mat')
 args = parser.parse_args()
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     train_size = 10000
     test_size = 1000
     p = args.p
-    mu = 0.0
+    mu = args.m
     sigma = args.s
     # bernoulli
     bern_train = np.random.binomial(size=[train_size, n], n=1, p=p)
@@ -52,5 +53,5 @@ if __name__ == "__main__":
     d = dict(A=A, train_x=train_x, test_x=test_x,
              train_z=train_z, test_z=test_z, train_e=train_e, test_e=test_e)
     # save mat file
-    sio.savemat('syn_data_p{}_s{}.mat'.format(p, sigma), d)
+    sio.savemat('syn_data_p{}_mu{}_s{}.mat'.format(p, mu, sigma), d)
 
