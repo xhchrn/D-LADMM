@@ -123,7 +123,7 @@ class DLADMMNet(nn.Module):
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
-        ss1  = kwargs.get('ss1', 0.5 / self.L)
+        ss1  = kwargs.get('ss1', 0.999 / self.L)
         ss2  = kwargs.get('ss2', 0.3)
         # beta = 1.0 / self.L.sqrt()
         # ss1 = 1.0 / self.L.sqrt()
@@ -152,7 +152,7 @@ class DLADMMNet(nn.Module):
 
     def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
         kwargs['beta'] = 1.0
-        kwargs['ss1'] = 0.5 / self.L
+        kwargs['ss1'] = 0.999 / self.L
         kwargs['ss2'] = 0.3
         k = kwargs.get('k', 0)
         if k == 15:
@@ -238,6 +238,20 @@ class DLADMMNet(nn.Module):
                 # exit()
                 # print(" ")
                 bool_term       = (S_L2O_norm < (1.0-delta) * mu_k).float()
+
+                # if k == 2:
+                    # bool_comp_binary = ~bool_term.bool()
+                    # num_sg  = int((bool_comp_binary).float().sum())
+                    # if num_sg > 0:
+                        # SL2_sg  = S_L2O_norm[bool_comp_binary].mean()
+                        # mu_k_sg = mu_k[bool_comp_binary].mean()
+                        # print('Mean SL2 of sg iter: {} with {:d} samples'.format(SL2_sg, num_sg))
+                        # print('Mean mu_k of sg iter: {} with {:d} samples'.format(mu_k_sg, num_sg))
+                        # print('Mean SL2: {}'.format(S_L2O_norm.mean()))
+                        # print('Mean mu_k: {}'.format(mu_k.mean()))
+                    # else:
+                        # print('Safeguard not activated')
+
                 mu_k            = mu_updater.step(S_L2O_norm, bool_term)
                 bool_term       = bool_term.reshape(1, bool_term.shape[0])
                 bool_complement = 1.0 - bool_term
@@ -491,6 +505,7 @@ elif objective == 'L1L1':
     # print(" ")
 
 elif objective == 'S-L2':
+    sl2_values /= n_test
     print('L2 norms of S(uk):')
     print(', '.join(map(my_str, sl2_values)))
 
