@@ -27,6 +27,7 @@ parser.add_argument('--model-file', type=str, default='DLADMMNet.pth', help='L2O
 parser.add_argument('--layers', type=int, default=20, help='number of layers of the L2O model')
 parser.add_argument('--objective', type=str, default='NMSE', help='objective for observations')
 parser.add_argument('-p', '--p', type=float, default=0.2, help='p in the Bernoulli distribution')
+parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian dist')
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
@@ -40,7 +41,8 @@ alpha = args.alpha
 delta = args.delta
 mu_k_method = args.mu_k_method
 mu_k_param  = args.mu_k_param
-test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma)
+test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 \
+    else 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
 print('using testing data file {}'.format(test_file))
 model_file = args.model_file
 layers = args.layers
