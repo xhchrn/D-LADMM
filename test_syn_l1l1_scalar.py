@@ -182,6 +182,7 @@ class DLADMMNet(nn.Module):
         E = list()
         L = list()
         T.append(self.A.mm(self.Z0) + self.E0 - X)
+        return_cnt = use_learned and use_safeguard
 
         if use_learned and use_safeguard:
             # NOTE: only take Tn for safegaurding
@@ -307,7 +308,7 @@ class DLADMMNet(nn.Module):
                 T.append(Tn_KM)
                 L.append(Ln_KM)
 
-        if use_learned and use_safeguard:
+        if return_cnt:
             return Z, E, L, T, sg_count
         else:
             return Z, E, L, T
