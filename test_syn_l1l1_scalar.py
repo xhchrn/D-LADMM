@@ -173,8 +173,7 @@ class DLADMMNet(nn.Module):
         return Sn
 
 
-    def forward(self, x):
-        global use_learned
+    def forward(self, x, use_learned, use_safeguard, continued):
         X = x
         T = list()
         TT = list()
@@ -199,6 +198,7 @@ class DLADMMNet(nn.Module):
         for k in range(K):
             if args.continued and k == layers:
                 use_learned = False
+                use_safeguard = False
             if k == 0 :
                 # Classic algorithm
                 Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(
@@ -450,9 +450,9 @@ for j in range(n_test//batch_size):
     input_bs_var = torch.from_numpy(input_bs).cuda()
     with torch.no_grad():
         if use_learned and use_safeguard:
-            Z, E, L, T, count = model(input_bs_var)
+            Z, E, L, T, count = model(input_bs_var, use_learned, use_safeguard, continued)
         else:
-            Z, E, L, T = model(input_bs_var)
+            Z, E, L, T = model(input_bs_var, use_learned, use_safeguard, continued)
 
     Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
