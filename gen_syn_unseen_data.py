@@ -50,8 +50,13 @@ if __name__ == "__main__":
     test_x = np.transpose(np.dot(A, test_z.T) + test_e.T)
 
     # create dict to save
-    d = dict(A=A, train_x=train_x, test_x=test_x,
-             train_z=train_z, test_z=test_z, train_e=train_e, test_e=test_e)
+    d = dict(A       = A,
+             train_x = train_x,
+             test_x  = test_x,
+             train_z = train_z,
+             test_z  = test_z,
+             train_e = train_e,
+             test_e  = test_e)
     # save mat file
     sio.savemat('syn_data_p{}_mu{}_s{}.mat'.format(p, mu, sigma), d)
 

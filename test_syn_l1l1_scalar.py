@@ -31,11 +31,13 @@ parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian 
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
+parser.add_argument('--continued', action='store_true', help='continue LSKM with KM')
 
 args = parser.parse_args()
 
 use_learned = args.use_learned
 use_safeguard = args.use_safeguard
+continued = args.continued
 num_iter = args.num_iter
 alpha = args.alpha
 delta = args.delta
@@ -193,6 +195,9 @@ class DLADMMNet(nn.Module):
             sg_count = np.zeros(self.layers)
 
         for k in range(K):
+            if args.continued and k == layers:
+                assert use_learned and use_safeguard
+                use_learned = False
             if k == 0 :
                 # Classic algorithm
                 Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(
