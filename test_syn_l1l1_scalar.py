@@ -174,6 +174,7 @@ class DLADMMNet(nn.Module):
 
 
     def forward(self, x):
+        global use_learned
         X = x
         T = list()
         TT = list()
