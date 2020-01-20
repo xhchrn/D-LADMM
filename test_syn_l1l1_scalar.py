@@ -48,7 +48,7 @@ test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 
 print('using testing data file {}'.format(test_file))
 model_file = args.model_file
 layers = args.layers
-K = layers if use_learned or use_safeguard else num_iter
+K = layers if (use_learned or use_safeguard and not continued) else num_iter
 objective = args.objective
 
 # logger file
