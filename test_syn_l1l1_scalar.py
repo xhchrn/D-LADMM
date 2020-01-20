@@ -56,9 +56,10 @@ if not os.path.isdir('test-logs'):
     os.makedirs('test-logs')
 log_file = os.path.join(
     'test-logs',
-    'scalar-{obj}-results-{alg}-p{p}-mu{mu}-sigma{sigma}-{delta}{method}{param}.txt'.format(
+    'scalar-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{delta}{method}{param}.txt'.format(
         obj = objective.lower(),
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
+        continued = '-continued{}'.format(num_iter) if continued else '',
         p = args.p, mu=args.mu, sigma = args.sigma,
         delta = 'delta{}-'.format(delta) if use_learned and use_safeguard else '',
         method = mu_k_method,
