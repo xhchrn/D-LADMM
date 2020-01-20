@@ -474,7 +474,7 @@ for j in range(n_test//batch_size):
                 # Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep, k=jj)
                 Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep)
                 sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
-        if use_learned and use_safeguard:
+        if jj < layers and use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 
 
