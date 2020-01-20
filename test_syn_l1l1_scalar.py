@@ -196,7 +196,6 @@ class DLADMMNet(nn.Module):
 
         for k in range(K):
             if args.continued and k == layers:
-                assert use_learned and use_safeguard
                 use_learned = False
             if k == 0 :
                 # Classic algorithm
