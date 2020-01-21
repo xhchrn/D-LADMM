@@ -143,7 +143,7 @@ class DLADMMNet(nn.Module):
         # NOTE: \hat{T}^k = A*Z^{k+1} - Ek - X
         TTn = self.A.mm(Zn) - Ek - X
         En = self.self_active(
-            Ek - ss2 * (Lk + beta * TTn),
+            Ek + ss2 * (Lk + beta * TTn),
             ss2
         )
 
