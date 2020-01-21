@@ -444,7 +444,7 @@ else:
     raise NotImplementedError('objective `{}` not supported'.format(objective))
 
 if use_learned and use_safeguard:
-    sg_count = torch.zeros(K).cuda()
+    sg_count = torch.zeros(layers).cuda()
 
 for j in range(n_test//batch_size):
     input_bs = X_ts[:, j*batch_size:(j+1)*batch_size]
