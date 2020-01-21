@@ -56,7 +56,7 @@ if not os.path.isdir('test-logs'):
     os.makedirs('test-logs')
 log_file = os.path.join(
     'test-logs',
-    'scalar-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{delta}{method}{param}.txt'.format(
+    'scalar-B=-I-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{delta}{method}{param}.txt'.format(
         obj = objective.lower(),
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
         continued = '-continued{}'.format(num_iter) if continued else '',
@@ -133,22 +133,22 @@ class DLADMMNet(nn.Module):
         # ss1 = 1.0 / self.L.sqrt()
         # ss2 = 0.5
 
-        # NOTE: T^k = A*Z^k + E^k - X
+        # NOTE: T^k = A*Z^k - E^k - X
         Varn = Lk + beta * Tk
         Zn = self.self_active(
             Zk - ss1 * self.At.mm(Varn),
             ss1 * alpha
         )
 
-        # NOTE: \hat{T}^k = A*Z^{k+1} + Ek - X
-        TTn = self.A.mm(Zn) + Ek - X
+        # NOTE: \hat{T}^k = A*Z^{k+1} - Ek - X
+        TTn = self.A.mm(Zn) - Ek - X
         En = self.self_active(
             Ek - ss2 * (Lk + beta * TTn),
             ss2
         )
 
-        # NOTE: T^{k+1} = A*Z^{k+1} + E^{k+1} - X
-        Tn = self.A.mm(Zn) + En - X
+        # NOTE: T^{k+1} = A*Z^{k+1} - E^{k+1} - X
+        Tn = self.A.mm(Zn) - En - X
         Ln = Lk + beta * Tn
 
         return Varn, Zn, En, Tn, Ln
