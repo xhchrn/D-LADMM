@@ -32,6 +32,7 @@ parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gau
 parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
 parser.add_argument('--continued', action='store_true', help='continue LSKM with KM')
+parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
 
 args = parser.parse_args()
 
@@ -45,7 +46,8 @@ mu_k_method = args.mu_k_method
 mu_k_param  = args.mu_k_param
 # test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 \
     # else 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
-test_file = 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
+test_file = 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma) if args.data_type == 'gaussian' \
+    else 'syn_data_p{}_mu{}_s{}_{}.mat'.format(args.p, args.mu, args.sigma, args.data_type)
 print('using testing data file {}'.format(test_file))
 model_file = args.model_file
 layers = args.layers
@@ -57,11 +59,11 @@ if not os.path.isdir('test-logs'):
     os.makedirs('test-logs')
 log_file = os.path.join(
     'test-logs',
-    'scalar-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{delta}{method}{param}.txt'.format(
+    'scalar-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
         obj = objective.lower(),
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
         continued = '-continued{}'.format(num_iter) if continued else '',
-        p = args.p, mu=args.mu, sigma = args.sigma,
+        p = args.p, mu=args.mu, sigma = args.sigma, data_type = args.data_type,
         delta = 'delta{}-'.format(delta) if use_learned and use_safeguard else '',
         method = mu_k_method,
         param = '' if mu_k_method == 'None' else mu_k_param
