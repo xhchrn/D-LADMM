@@ -43,8 +43,9 @@ alpha = args.alpha
 delta = args.delta
 mu_k_method = args.mu_k_method
 mu_k_param  = args.mu_k_param
-test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 \
-    else 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
+# test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 \
+    # else 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
+test_file = 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
 print('using testing data file {}'.format(test_file))
 model_file = args.model_file
 layers = args.layers
