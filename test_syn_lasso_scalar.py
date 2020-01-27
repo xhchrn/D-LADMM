@@ -448,6 +448,8 @@ if objective == 'NMSE':
     mse_e = torch.zeros(K).cuda()
 elif objective == 'L1L1':
     l1l1_values = torch.zeros(K).cuda()
+elif objective == 'LASSO':
+    lasso_values = torch.zeros(K).cuda()
 elif objective == 'S-L2':
     sl2_values = torch.zeros(K).cuda()
 else:
@@ -484,6 +486,11 @@ for j in range(n_test//batch_size):
                 # Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep, k=jj)
                 Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep)
                 sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
+            elif objective == 'LASSO':
+                lasso_values[jj] = l1l1_values[jj] + (
+                    alpha * torch.sum(torch.abs(Z[jj])) +
+                    0.5 * torch.sum((input_bs_var - torch.mm(A_tensor, Z[jj])) ** 2.0)
+                )
         if jj < layers and use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 
@@ -520,6 +527,21 @@ elif objective == 'L1L1':
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
     print('******Best MSE: {:.3f}\n'.format(mse_value))
+    # print(" ")
+
+elif objective == 'LASSO':
+    lasso_values = lasso_values / n_test
+    mse_value = 1000.0
+    for jj in range(K):
+        if(lasso_values[jj] < mse_value):
+            mse_value = lasso_values[jj].cpu().item()
+    print('LASSO values:')
+    print(', '.join(map(my_str, lasso_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
+    print('******Best Objective: {:.3f}\n'.format(mse_value))
     # print(" ")
 
 elif objective == 'S-L2':
