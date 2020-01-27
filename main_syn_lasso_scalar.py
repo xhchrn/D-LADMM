@@ -233,7 +233,7 @@ if __name__ == '__main__':
     # psnr_value = 0
     # best_pic = np.zeros(shape=(256,1024))
     # optimizer = None
-    learning_rate =  0.005
+    learning_rate =  0.0005
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40], gamma=0.2)
     # loss_start_layer = layers - 1
