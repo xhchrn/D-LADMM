@@ -31,11 +31,12 @@ class DLADMMNet(nn.Module):
         self.L = (np.linalg.norm(np.matmul(self.A_np.transpose(), self.A_np), ord=2) * torch.ones(1,1)).float().cuda()
 
         self.beta1 = nn.ParameterList()
-        self.beta2 = nn.ParameterList()
+        # self.beta2 = nn.ParameterList()
         self.beta3 = nn.ParameterList()
-        self.ss2 = nn.ParameterList()
+        self.ss2_1 = nn.ParameterList()
+        self.ss2_2 = nn.ParameterList()
         self.active_para = nn.ParameterList()
-        self.active_para1 = nn.ParameterList()
+        # self.active_para1 = nn.ParameterList()
         self.fc = nn.ModuleList()
 
         for k in range(self.layers):
