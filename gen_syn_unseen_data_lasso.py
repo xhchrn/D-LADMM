@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     # generate E
     # gaussian
-    train_e = np.random.normal(size=[train_size, m], loc=0,0, scale=1.0/sqrt(m))
+    train_e = np.random.normal(size=[train_size, m], loc=0.0, scale=1.0/sqrt(m))
     test_e = np.random.normal(size=[test_size, m], loc=0.0, scale=1.0/sqrt(m))
 
     # generate X with X = AZ + E
