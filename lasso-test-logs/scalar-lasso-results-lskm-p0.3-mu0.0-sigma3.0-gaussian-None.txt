@@ -1,0 +1,9 @@
+INFO:root:==>>> use cuda
+INFO:root:==>>> batch size: 100
+INFO:root:==>>> total testing batch number: 10
+INFO:root: 
+INFO:root:---------------------------testing---------------------------
+INFO:root:LASSO values:
+INFO:root:5.461833, 1.968884, 1.120219, 0.975233, 0.793605, 0.829754, 0.830531, 0.837727, 0.807458, 0.753397, 0.678438, 0.569233, 0.459878, 0.407844, 0.391149, 0.386389, 0.383696, 0.381443, 0.380488, 0.386673
+INFO:root:******Best Objective: 0.380
+

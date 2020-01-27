@@ -1,0 +1,5 @@
+INFO:root:==>>> use cuda
+INFO:root:==>>> batch size: 100
+INFO:root:==>>> total testing batch number: 10
+INFO:root: 
+INFO:root:---------------------------testing---------------------------
