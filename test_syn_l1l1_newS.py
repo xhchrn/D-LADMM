@@ -55,10 +55,10 @@ K = layers if (not continued and (use_learned or use_safeguard)) else num_iter
 objective = args.objective
 
 # logger file
-if not os.path.isdir('test-logs'):
-    os.makedirs('test-logs')
+if not os.path.isdir('newS-test-logs'):
+    os.makedirs('newS-test-logs')
 log_file = os.path.join(
-    'test-logs',
+    'newS-test-logs',
     'scalar-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
         obj = objective.lower(),
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
