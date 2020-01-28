@@ -20,6 +20,7 @@ if __name__ == "__main__":
     A = sio.loadmat(args.A_file)['A'].astype(np.float32)
 
     # generate Z
+    np.random.seed(1291)
     train_size = 10000
     test_size = 1000
     p = args.p

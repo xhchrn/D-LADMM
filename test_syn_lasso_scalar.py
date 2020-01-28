@@ -132,7 +132,7 @@ class DLADMMNet(nn.Module):
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
-        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss1  = kwargs.get('ss1', 0.5 / self.L)
         # ss2  = kwargs.get('ss2', 0.5)
         # beta = 1.0 / self.L.sqrt()
         # ss1 = 1.0 / self.L.sqrt()
@@ -152,7 +152,7 @@ class DLADMMNet(nn.Module):
             # ss2
         # )
         residual = X - self.A.mm(Zn)
-        En = beta * (1.0 + beta) * residual - 1.0 / (1.0 + beta) * Lk
+        En = beta / (1.0 + beta) * residual - 1.0 / (1.0 + beta) * Lk
 
         # NOTE: T^{k+1} = A*Z^{k+1} + E^{k+1} - X
         Tn = self.A.mm(Zn) + En - X
@@ -219,7 +219,7 @@ class DLADMMNet(nn.Module):
                     Varn_L2O = self.L0 + self.beta1[k].mul(T[-1])
                     Zn_L2O = self.self_active(self.Z0 - self.fc[k](Varn_L2O.t()).t(), self.active_para[k])
                     # Step 2 NOTE: my modification
-                    residual = X - self.A.mm(Z[-1])
+                    residual = X - self.A.mm(Zn_L2O)
                     En_L2O = self.ss2_1[k].mul(residual) - self.ss2_2[k].mul(self.L0)
                     # Step 3
                     Tn_L2O = self.A.mm(Zn_L2O) + En_L2O - X
@@ -235,7 +235,7 @@ class DLADMMNet(nn.Module):
                     Varn_L2O = L[-1] + self.beta1[k].mul(T[-1])
                     Zn_L2O = self.self_active(Z[-1] - self.fc[k](Varn_L2O.t()).t(), self.active_para[k])
                     # Step 2 NOTE: my modification
-                    residual = X - self.A.mm(Z[-1])
+                    residual = X - self.A.mm(Zn_L2O)
                     En_L2O = self.ss2_1[k].mul(residual) - self.ss2_2[k].mul(L[-1])
                     # Step 3
                     Tn_L2O = self.A.mm(Zn_L2O) + En_L2O - X
@@ -380,7 +380,7 @@ device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
 m, d, n = 250, 500, 10000
 # n_test = 1024 if 'lena' in test_file or 'fake' in test_file else 256
 n_test = 1000
-batch_size = 20
+batch_size = 100
 
 use_cuda = torch.cuda.is_available()
 print('==>>> use cuda' if use_cuda else '==>>> use cpu')
@@ -487,7 +487,7 @@ for j in range(n_test//batch_size):
                 Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep)
                 sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
             elif objective == 'LASSO':
-                lasso_values[jj] = l1l1_values[jj] + (
+                lasso_values[jj] = lasso_values[jj] + (
                     alpha * torch.sum(torch.abs(Z[jj])) +
                     0.5 * torch.sum((input_bs_var - torch.mm(A_tensor, Z[jj])) ** 2.0)
                 )
