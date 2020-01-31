@@ -15,7 +15,6 @@ parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian 
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
-parser.add_argument('--objective', type=str, default='NMSE', help='objective for observations')
 parser.add_argument('--batch-size', type=int, default=20, help='batch size')
 
 def loss_l1(X):
@@ -39,8 +38,6 @@ if __name__ == '__main__':
     test_file += '_{}'.format(args.data_type) if args.data_type != 'gaussian' else ''
     test_file += '.mat'
     print('using testing data file {}'.format(test_file))
-
-    objective = args.objective
 
     # logger file
     if not os.path.isdir('cvx-solutions'):
