@@ -49,9 +49,8 @@ if __name__ == '__main__':
     print = setup_logger(log_file)
 
     syn_data = sio.loadmat(test_file)
-    A_ori = syn_data['A']
-    A_ori = A_ori.astype(np.float32)
-    m, n = A_ori.shape
+    A = syn_data['A'].astype(np.float32)
+    m, n = A.shape
 
     X = syn_data['test_x'].astype(np.float32).T # (m, #samples)
     Z = syn_data['test_z'].astype(np.float32).T # (n, #samples)
