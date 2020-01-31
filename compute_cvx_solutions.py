@@ -59,7 +59,7 @@ if __name__ == '__main__':
     n_test = X.shape[1]
 
     Z_var = cp.Variable((n,batch_size))
-    X_param = cp.Parameter(test_x_b.shape)
+    X_param = cp.Parameter((m,batch_size))
     objective = cp.Minimize(objective_fn(Z_var, X_param, A, alpha))
     problem = cp.Problem(objective)
 
