@@ -1,0 +1,6 @@
+INFO:root:==>>> use cuda
+INFO:root:==>>> batch size: 100
+INFO:root:==>>> total testing batch number: 10
+INFO:root: 
+INFO:root:---------------------------testing---------------------------
+INFO:root:results saved to lasso-all-results-p0.3-mu0.0-sigma3.0
