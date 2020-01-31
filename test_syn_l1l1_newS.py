@@ -167,7 +167,7 @@ class DLADMMNet(nn.Module):
     def Snorm_ELZ(self, Ek, Lk, Zn, X, **kwargs):
         kwargs['beta'] = 1.0
         kwargs['ss1'] = 0.999 / self.L
-        ss2 = 1.0 / beta
+        ss2 = 1.0 / kwargs['beta']
 
         En, Tn, Ln, Varnn, Znn = self.KM_ELZ(Ek, Lk, Zn, X, **kwargs)
 
@@ -176,7 +176,7 @@ class DLADMMNet(nn.Module):
         P2 = getattr(self, 'P2', None)
         if P2 is None:
             eye = torch.eye(self.d).float().cuda()
-            P2 = eye / beta / ss1 - self.At.mm(self.A)
+            P2 = eye / kwargs['beta'] / kwargs['ss1'] - self.At.mm(self.A)
             setattr(self, 'P2', P2)
 
         temp = P2.mm(Znn - Zn)
@@ -237,7 +237,8 @@ class DLADMMNet(nn.Module):
                 # L2O + safegaurding
                 assert use_learned
                 Snorm_L2O = self.Snorm_ELZ(En_L2O, Ln_L2O, Zn_L2O, X)
-                bool_term = (S_L2O_norm < (1.0-delta) * mu_k).float()
+                print(str(Snorm_L2O.mean()) + '\t' + str(mu_k.mean()))
+                bool_term = (Snorm_L2O < (1.0-delta) * mu_k).float()
 
                 mu_k            = mu_updater.step(Snorm_L2O, bool_term)
                 bool_term       = bool_term.reshape(1, bool_term.shape[0])
@@ -352,6 +353,10 @@ elif objective == 'L1L1':
     l1l1_values = torch.zeros(K).cuda()
 elif objective == 'S-L2':
     sl2_values = torch.zeros(K).cuda()
+elif objective == 'Normalized-GT':
+    normalized_gt = torch.zeros(K).cuda()
+elif objective == 'Normalized-DGAP':
+    normalized_dgap = torch.zeros(K).cuda()
 else:
     raise NotImplementedError('objective `{}` not supported'.format(objective))
 
@@ -371,18 +376,26 @@ for j in range(n_test//batch_size):
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
 
     for jj in range(K):
+
         with torch.no_grad():
+
             if objective == 'NMSE':
                 mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
                 mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+
             elif objective == 'L1L1':
                 l1l1_values[jj] = l1l1_values[jj] + (
                     alpha * torch.sum(torch.abs(Z[jj])) +
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
                 )
+
             elif objective == 'S-L2':
                 Snorm = model.Snorm_ELZ(E[jj], L[jj], Z[jj], input_bs_var)
                 sl2_values[jj] = sl2_values[jj] + Snorm.sum()
+
+            elif objective == 'Normalized-DGAP':
+                normalized_dgap = torch.zeros(K).cuda()
+
         if jj < layers and use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 

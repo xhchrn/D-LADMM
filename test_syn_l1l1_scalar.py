@@ -176,7 +176,7 @@ class DLADMMNet(nn.Module):
         return Sn
 
 
-    def forward(self, x, use_learned, use_safeguard, continued):
+    def forward(self, x, use_learned, use_safeguard, continued, K=K):
         X = x
         T = list()
         TT = list()
@@ -362,8 +362,19 @@ def calc_PSNR(x1, x2):
     return psnr
 
 def dual_gap(x, alpha):
-    out = F.softplus(x - alpha) + F.softplus(- x - alpha)
+    out = F.relu(x - alpha) + F.relu(- x - alpha)
+    # out = F.softplus(x - alpha) + F.softplus(- x - alpha)
     return out
+
+def l1l1_dgap_loss(Z, E, L, X):
+    l1l1_dgap = (
+        alpha * torch.sum(torch.abs(Z), dim=0) +
+        torch.sum(torch.abs(E), dim=0) +
+        torch.sum(dual_gap(torch.mm(A_tensor.t(), L), alpha), dim=0) +
+        torch.sum(dual_gap(L, 1), dim=0) -
+        torch.sum(L * X, dim=0)
+    )
+    return l1l1_dgap
 
 
 np.random.seed(1126)
@@ -395,13 +406,13 @@ E_tr = syn_data['train_e'].astype(np.float32)
 E_tr = E_tr.T
 
 X_ts = syn_data['test_x'].astype(np.float32)
-X_ts = X_ts.T
+X_ts = X_ts.T * 2
 
 Z_ts = syn_data['test_z'].astype(np.float32)
-Z_ts = Z_ts.T
+Z_ts = Z_ts.T * 2
 
 E_ts = syn_data['test_e'].astype(np.float32)
-E_ts = E_ts.T
+E_ts = E_ts.T * 2
 
 # X_gt = syn_data['gt_x'].astype(np.float32)
 # X_gt = X_gt.T
@@ -441,6 +452,12 @@ if objective == 'NMSE':
     mse_e = torch.zeros(K).cuda()
 elif objective == 'L1L1':
     l1l1_values = torch.zeros(K).cuda()
+elif objective == 'Normalized-L1L1':
+    normalized_l1l1_values = torch.zeros(K).cuda()
+elif objective == 'GT':
+    gt_values = torch.zeros(K).cuda()
+elif objective == 'Normalized-GT':
+    normalized_gt_values = torch.zeros(K).cuda()
 elif objective == 'S-L2':
     sl2_values = torch.zeros(K).cuda()
 else:
@@ -457,26 +474,62 @@ for j in range(n_test//batch_size):
             Z, E, L, T, count = model(input_bs_var, use_learned, use_safeguard, continued)
         else:
             Z, E, L, T = model(input_bs_var, use_learned, use_safeguard, continued)
+        if 'normalized' in objective.lower() or 'gt' in objective.lower():
+            Zp, Ep, Lp, Tp = model(input_bs_var, False, False, False, K=2000)
 
     Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
 
     for jj in range(K):
         with torch.no_grad():
+
             if objective == 'NMSE':
                 mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
                 mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+
             elif objective == 'L1L1':
                 l1l1_values[jj] = l1l1_values[jj] + (
                     alpha * torch.sum(torch.abs(Z[jj])) +
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
                 )
+
+            elif objective == 'Normalized-L1L1':
+                l1l1_value = (
+                    alpha * torch.sum(torch.abs(Z[jj]), dim=0) +
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])), dim=0)
+                )
+                gt_l1l1_value = (
+                    alpha * torch.sum(torch.abs(Zp[-1]), dim=0) +
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Zp[-1])), dim=0)
+                )
+                # print(l1l1_value)
+                # print(gt_l1l1_value)
+                normalized_l1l1_values[jj] += (torch.abs(l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
+
+            elif objective == 'GT':
+                gt_values[jj] += (
+                    torch.sum((Z[jj] - Zp[-1])**2.0) +
+                    torch.sum((E[jj] - Ep[-1])**2.0)
+                )
+
+            elif objective == 'Normalized-GT':
+                gt_value = (
+                    torch.sum((Z[jj] - Zp[-1])**2.0, dim=0) +
+                    torch.sum((E[jj] - Ep[-1])**2.0, dim=0)
+                )
+                gt_norm = (
+                    torch.sum(Zp[-1] ** 2.0, dim=0) +
+                    torch.sum(Ep[-1] ** 2.0, dim=0)
+                )
+                normalized_gt_values[jj] += (gt_value / gt_norm).sum()
+
             elif objective == 'S-L2':
                 # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
                 Ep = model.E0 if jj == 0 else E[jj-1]
                 # Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep, k=jj)
                 Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep)
                 sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
+
         if jj < layers and use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 
@@ -513,6 +566,36 @@ elif objective == 'L1L1':
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
     print('******Best MSE: {:.3f}\n'.format(mse_value))
+    # print(" ")
+
+elif objective == 'Normalized-L1L1':
+    normalized_l1l1_values /= n_test
+    print('Normalized L1L1 values:')
+    print(', '.join(map(my_str, normalized_l1l1_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
+    # print(" ")
+
+elif objective == 'GT':
+    gt_values /= n_test
+    print('GT values:')
+    print(', '.join(map(my_str, gt_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
+    # print(" ")
+
+elif objective == 'Normalized-GT':
+    normalized_gt_values /= n_test
+    print('Normalized GT values:')
+    print(', '.join(map(my_str, normalized_gt_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
     # print(" ")
 
 elif objective == 'S-L2':

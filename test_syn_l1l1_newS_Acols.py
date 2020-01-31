@@ -26,6 +26,7 @@ parser.add_argument('--mu-k-param', type=float, default=0.0, help='mu_k update p
 parser.add_argument('--model-file', type=str, default='DLADMMNet.pth', help='L2O model to be loaded and tested')
 parser.add_argument('--layers', type=int, default=20, help='number of layers of the L2O model')
 parser.add_argument('--objective', type=str, default='NMSE', help='objective for observations')
+parser.add_argument('--cols', type=int, default=20, help='num of changed columns in A')
 parser.add_argument('-p', '--p', type=float, default=0.2, help='p in the Bernoulli distribution')
 parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian dist')
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
@@ -46,8 +47,8 @@ mu_k_method = args.mu_k_method
 mu_k_param  = args.mu_k_param
 # test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 \
     # else 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
-test_file = 'syn_data_lasso_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma) if args.data_type == 'gaussian' \
-    else 'syn_data_lasso_p{}_mu{}_s{}_{}.mat'.format(args.p, args.mu, args.sigma, args.data_type)
+test_file = 'syn_data_cols{}_p{}_mu{}_s{}.mat'.format(args.cols, args.p, args.mu, args.sigma) if args.data_type == 'gaussian' \
+    else 'syn_data_cols{}_p{}_mu{}_s{}_{}.mat'.format(args.cols, args.p, args.mu, args.sigma, args.data_type)
 print('using testing data file {}'.format(test_file))
 model_file = args.model_file
 layers = args.layers
@@ -55,15 +56,15 @@ K = layers if (not continued and (use_learned or use_safeguard)) else num_iter
 objective = args.objective
 
 # logger file
-if not os.path.isdir('test-logs'):
-    os.makedirs('test-logs')
+if not os.path.isdir('newS-test-logs'):
+    os.makedirs('newS-test-logs')
 log_file = os.path.join(
-    'lasso-test-logs',
-    'scalar-{obj}-results-{alg}{continued}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
+    'newS-test-logs',
+    'scalar-{obj}-results-{alg}{continued}-cols{cols}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
         obj = objective.lower(),
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
         continued = '-continued{}'.format(num_iter) if continued else '',
-        p = args.p, mu=args.mu, sigma = args.sigma, data_type = args.data_type,
+        cols=args.cols, p = args.p, mu=args.mu, sigma = args.sigma, data_type = args.data_type,
         delta = 'delta{}-'.format(delta) if use_learned and use_safeguard else '',
         method = mu_k_method,
         param = '' if mu_k_method == 'None' else mu_k_param
@@ -90,24 +91,22 @@ class DLADMMNet(nn.Module):
         self.L = (np.linalg.norm(np.matmul(self.A_np.transpose(), self.A_np), ord=2) * torch.ones(1,1)).float().cuda()
 
         self.beta1 = nn.ParameterList()
-        # self.beta2 = nn.ParameterList()
+        self.beta2 = nn.ParameterList()
         self.beta3 = nn.ParameterList()
-        self.ss2_1 = nn.ParameterList()
-        self.ss2_2 = nn.ParameterList()
+        self.ss2 = nn.ParameterList()
         self.active_para = nn.ParameterList()
-        # self.active_para1 = nn.ParameterList()
+        self.active_para1 = nn.ParameterList()
         self.fc = nn.ModuleList()
 
         for k in range(self.layers):
             # self.beta1.append(nn.Parameter(torch.ones(self.m, self.batch_size, dtype=torch.float32)))
             # self.beta2.append(nn.Parameter(torch.ones(self.m, self.batch_size, dtype=torch.float32)))
             self.beta1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
-            # self.beta2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
+            self.beta2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.beta3.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
-            self.ss2_1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32) * 0.5))
-            self.ss2_2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32) * 0.5))
+            self.ss2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.active_para.append(nn.Parameter(0.2 * torch.ones(1, 1, dtype=torch.float32)))
-            # self.active_para1.append(nn.Parameter(0.8 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para1.append(nn.Parameter(0.8 * torch.ones(1, 1, dtype=torch.float32)))
             self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         # self.active_para = torch.tensor(0.025, dtype=torch.float32).cuda()
@@ -130,29 +129,16 @@ class DLADMMNet(nn.Module):
         return norm_array
 
 
-    def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
+    def KM_ZEL(self, Zk, Ek, Lk, Tk, X, **kwargs):
         beta = kwargs.get('beta', 1.0)
-        ss1  = kwargs.get('ss1', 0.5 / self.L)
-        # ss2  = kwargs.get('ss2', 0.5)
-        # beta = 1.0 / self.L.sqrt()
-        # ss1 = 1.0 / self.L.sqrt()
-        # ss2 = 0.5
+        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss2  = 1.0 / beta
 
         # NOTE: T^k = A*Z^k + E^k - X
         Varn = Lk + beta * Tk
-        Zn = self.self_active(
-            Zk - ss1 * self.At.mm(Varn),
-            ss1 * alpha
-        )
+        Zn = self.self_active(Zk - ss1 * self.At.mm(Varn), ss1 * alpha)
 
-        # NOTE: \hat{T}^k = A*Z^{k+1} + Ek - X
-        # TTn = self.A.mm(Zn) + Ek - X
-        # En = self.self_active(
-            # Ek - ss2 * (Lk + beta * TTn),
-            # ss2
-        # )
-        residual = X - self.A.mm(Zn)
-        En = beta / (1.0 + beta) * residual - 1.0 / (1.0 + beta) * Lk
+        En = self.self_active(X - self.A.mm(Zn) - ss2 * Lk, ss2)
 
         # NOTE: T^{k+1} = A*Z^{k+1} + E^{k+1} - X
         Tn = self.A.mm(Zn) + En - X
@@ -161,47 +147,54 @@ class DLADMMNet(nn.Module):
         return Varn, Zn, En, Tn, Ln
 
 
-    def S(self, Zk, Ek, Lk, Tk, X, Ep, **kwargs):
+    def KM_ELZ(self, Ek, Lk, Zn, X, **kwargs):
+        beta = kwargs.get('beta', 1.0)
+        ss1  = kwargs.get('ss1', 0.999 / self.L)
+        ss2  = 1.0 / beta
+
+        En = self.self_active(X - self.A.mm(Zn) - ss2 * Lk, ss2)
+
+        # NOTE: T^{k+1} = A*Z^{k+1} + E^{k+1} - X
+        Tn = self.A.mm(Zn) + En - X
+        Ln = Lk + beta * Tn
+
+        # NOTE: T^k = A*Z^k + E^k - X
+        Varnn = Ln + beta * Tn
+        Znn = self.self_active(Zn - ss1 * self.At.mm(Varnn), ss1 * alpha)
+
+        return En, Tn, Ln, Varnn, Znn
+
+
+    def Snorm_ELZ(self, Ek, Lk, Zn, X, **kwargs):
         kwargs['beta'] = 1.0
         kwargs['ss1'] = 0.999 / self.L
-        # kwargs['ss2'] = 0.3
+        ss2 = 1.0 / kwargs['beta']
 
-        # k = kwargs.get('k', 0)
-        # if k == 15:
-            # kwargs['ss2'] = 0.9
+        En, Tn, Ln, Varnn, Znn = self.KM_ELZ(Ek, Lk, Zn, X, **kwargs)
 
-        Varn, Zn, En, Tn, Ln = self.KM(Zk, Ek, Lk, Tk, X, **kwargs)
-        c1 = kwargs['beta'] * kwargs['ss2']
-        assert c1 < 1
-        # c = 0.0
-        c = sqrt(c1 / (1 - c1))
-        # return kwargs['beta'] * Tn, c * (En - 2*Ek + Ep), torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
-        Sn = torch.cat([kwargs['beta'] * Tn, c * (En - 2*Ek + Ep)])
+        squared_norm_1 = ((self.A.mm(Znn) + En - X)**2.0).sum(dim=0)
 
-        return Sn
+        P2 = getattr(self, 'P2', None)
+        if P2 is None:
+            eye = torch.eye(self.d).float().cuda()
+            P2 = eye / kwargs['beta'] / kwargs['ss1'] - self.At.mm(self.A)
+            setattr(self, 'P2', P2)
+
+        temp = P2.mm(Znn - Zn)
+        squared_norm_2 = ((Znn - Zn) * temp).sum(dim=0)
+
+        return (squared_norm_1 + squared_norm_2).sqrt()
 
 
-    def forward(self, x, use_learned, use_safeguard, continued):
+    def forward(self, x, use_learned, use_safeguard, continued, K=K):
         X = x
-        T = list()
-        TT = list()
-        Var = list()
         Z = list()
         E = list()
         L = list()
-        T.append(self.A.mm(self.Z0) + self.E0 - X)
         return_cnt = use_learned and use_safeguard
 
         if use_learned and use_safeguard:
-            raise NotImplementedError('Safeguard for LASSO not implemented')
-            # NOTE: only take Tn for safegaurding
-            S0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
-            # Sp1, Sp2, S0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
-            # print(self.two_norm(Sp1)[:10]**2)
-            # print(self.two_norm(Sp2)[:10]**2)
-            # mu_k = self.two_norm(self.KM(self.Z0, self.E0, self.L0, T[-1], X)[-2])
-            mu_k = self.two_norm(S0)
-            # print(mu_k)
+            mu_k = self.Snorm_ELZ(self.E0, self.L0, self.Z0, X)
             mu_updater = mu_updater_dict[mu_k_method](mu_k, mu_k_param)
             sg_count = np.zeros(self.layers)
 
@@ -209,164 +202,75 @@ class DLADMMNet(nn.Module):
             if args.continued and k == layers:
                 use_learned = False
                 use_safeguard = False
+
             if k == 0 :
                 # Classic algorithm
-                Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(
-                    self.Z0, self.E0, self.L0, T[-1], X)
+                T0 = self.A.mm(self.Z0) + self.E0 - X
+                En_KM = self.E0
+                Ln_KM = self.L0
+                Varn_KM, Zn_KM, _, _, _ = self.KM_ZEL(self.Z0, self.E0, self.L0, T0, X)
                 # L2O algorithm
                 if use_learned:
-                    # Step 1
-                    Varn_L2O = self.L0 + self.beta1[k].mul(T[-1])
+                    En_L2O = self.E0
+                    Ln_L2O = self.L0
+                    # NOTE: `Varn` and `Zn` should be `Varnn` and `Znn`, to be strict
+                    Varn_L2O = self.L0 + self.beta1[k].mul(T0)
                     Zn_L2O = self.self_active(self.Z0 - self.fc[k](Varn_L2O.t()).t(), self.active_para[k])
-                    # Step 2 NOTE: my modification
-                    residual = X - self.A.mm(Zn_L2O)
-                    En_L2O = self.ss2_1[k].mul(residual) - self.ss2_2[k].mul(self.L0)
-                    # Step 3
-                    Tn_L2O = self.A.mm(Zn_L2O) + En_L2O - X
-                    Ln_L2O = self.L0 + self.beta3[k].mul(Tn_L2O)
 
             else :
                 # Classic algorithm
-                Varn_KM, Zn_KM, En_KM, Tn_KM, Ln_KM = self.KM(
-                    Z[-1], E[-1], L[-1], T[-1], X)
+                # NOTE: `Varn_KM` and `Zn_KM` should be `Varnn_KM` and `Znn_KM`, to be strict
+                En_KM, Tn_KM, Ln_KM, Varn_KM, Zn_KM = self.KM_ELZ(E[-1], L[-1], Z[-1], X)
                 # L2O algorithm
                 if use_learned:
-                    # Step 1
-                    Varn_L2O = L[-1] + self.beta1[k].mul(T[-1])
+                    # E step: NOTE: my modification
+                    VVar = L[-1] + self.beta2[k-1] * (self.A.mm(Z[-1]) + E[-1] - X)
+                    En_L2O = self.self_active(E[-1] - self.ss2[k-1].mul(VVar), self.active_para1[k-1])
+                    # L step:
+                    Tn_L2O = self.A.mm(Z[-1]) + En_L2O - X
+                    Ln_L2O = L[-1] + self.beta3[k-1].mul(Tn_L2O)
+                    # Z step:
+                    # NOTE: `Varn` and `Zn` should be `Varnn` and `Znn`, to be strict
+                    Varn_L2O = Ln_L2O + self.beta1[k].mul(Tn_L2O)
                     Zn_L2O = self.self_active(Z[-1] - self.fc[k](Varn_L2O.t()).t(), self.active_para[k])
-                    # Step 2 NOTE: my modification
-                    residual = X - self.A.mm(Zn_L2O)
-                    En_L2O = self.ss2_1[k].mul(residual) - self.ss2_2[k].mul(L[-1])
-                    # Step 3
-                    Tn_L2O = self.A.mm(Zn_L2O) + En_L2O - X
-                    Ln_L2O = L[-1] + self.beta3[k].mul(Tn_L2O)
 
             if use_safeguard:
-                raise NotImplementedError('Safeguard for LASSO objective not implemented')
                 # L2O + safegaurding
                 assert use_learned
-                Ep    = self.E0 if k == 0 else E[-1]
-                S_L2O = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
-                # Sp1_L2O, Sp2_L2O, S_L2O = self.S(Zn_L2O, En_L2O, Ln_L2O, Tn_L2O, X, Ep)
-                S_L2O_norm = self.two_norm(S_L2O)
-                # print(self.two_norm(Sp1_L2O)[:10]**2)
-                # print(self.two_norm(Sp2_L2O)[:10]**2)
-                # print(S_L2O_norm[:10])
-                # print(mu_k[:10])
-                # exit()
-                # print(" ")
-                bool_term       = (S_L2O_norm < (1.0-delta) * mu_k).float()
+                Snorm_L2O = self.Snorm_ELZ(En_L2O, Ln_L2O, Zn_L2O, X)
+                # print(str(Snorm_L2O.mean()) + '\t' + str(mu_k.mean()))
+                bool_term = (Snorm_L2O < (1.0-delta) * mu_k).float()
 
-                # if k == 2:
-                    # bool_comp_binary = ~bool_term.bool()
-                    # num_sg  = int((bool_comp_binary).float().sum())
-                    # if num_sg > 0:
-                        # SL2_sg  = S_L2O_norm[bool_comp_binary].mean()
-                        # mu_k_sg = mu_k[bool_comp_binary].mean()
-                        # print('Mean SL2 of sg iter: {} with {:d} samples'.format(SL2_sg, num_sg))
-                        # print('Mean mu_k of sg iter: {} with {:d} samples'.format(mu_k_sg, num_sg))
-                        # print('Mean SL2: {}'.format(S_L2O_norm.mean()))
-                        # print('Mean mu_k: {}'.format(mu_k.mean()))
-                    # else:
-                        # print('Safeguard not activated')
-
-                mu_k            = mu_updater.step(S_L2O_norm, bool_term)
+                mu_k            = mu_updater.step(Snorm_L2O, bool_term)
                 bool_term       = bool_term.reshape(1, bool_term.shape[0])
                 bool_complement = 1.0 - bool_term
 
-                Var.append(bool_term * Varn_L2O + bool_complement * Varn_KM)
-                Z.append  (bool_term * Zn_L2O   + bool_complement * Zn_KM)
                 E.append  (bool_term * En_L2O   + bool_complement * En_KM)
-                T.append  (bool_term * Tn_L2O   + bool_complement * Tn_KM)
                 L.append  (bool_term * Ln_L2O   + bool_complement * Ln_KM)
-
-                # if k == layers - 1:
-                    # bool_term_binary = (S_L2O_norm < (1.0-delta) * mu_k)
-                    # # bool_term_binary = bool_term_binary.reshape(1, bool_term_binary.shape[0])
-                    # Zused_L2O = Zn_L2O[:,bool_term_binary]
-                    # Zused_KM  = Zn_KM[:,~bool_term_binary]
-                    # num_L2O = int(bool_term_binary.float().sum())
-                    # num_KM  = int((~bool_term_binary).float().sum())
-                    # Xused_L2O = X[:,bool_term_binary]
-                    # Xused_KM  = X[:,~bool_term_binary]
-                    # l1l1_L2O = (
-                        # alpha * torch.sum(torch.abs(Zused_L2O), dim=0).mean() +
-                        # torch.sum(torch.abs(Xused_L2O - torch.mm(A_tensor, Zused_L2O)), dim=0).mean()
-                    # ) if num_L2O > 0 else 0.0
-                    # l1l1_KM = (
-                        # alpha * torch.sum(torch.abs(Zused_KM), dim=0).mean() +
-                        # torch.sum(torch.abs(Xused_KM - torch.mm(A_tensor, Zused_KM)), dim=0).mean()
-                    # ) if num_KM > 0 else 0.0
-                    # print('L2O loss: {} with {:d} samples'.format(l1l1_L2O, num_L2O))
-                    # print('KM loss: {} with {:d} samples'.format(l1l1_KM, num_KM))
+                Z.append  (bool_term * Zn_L2O   + bool_complement * Zn_KM)
 
                 sg_count[k] = bool_complement.sum().cpu().item()
 
             elif use_learned:
                 # Only L2O
-                Var.append(Varn_L2O)
-                Z.append(Zn_L2O)
                 E.append(En_L2O)
-                T.append(Tn_L2O)
                 L.append(Ln_L2O)
+                Z.append(Zn_L2O)
 
             else:
                 # Classic KL algorithm
-                Var.append(Varn_KM)
-                Z.append(Zn_KM)
                 E.append(En_KM)
-                T.append(Tn_KM)
                 L.append(Ln_KM)
+                Z.append(Zn_KM)
 
         if return_cnt:
-            return Z, E, L, T, sg_count
+            return Z, E, L, sg_count
         else:
-            return Z, E, L, T
+            return Z, E, L
 
 
     def name(self):
         return "DLADMMNet"
-
-
-# other functions
-def trans2image(img):
-    # img 256 x 1024
-    # img = img.cpu().data.numpy()
-    new_img = np.zeros([im_size, im_size])
-    count = 0
-    for ii in range(0, im_size, 16):
-            for jj in range(0, im_size, 16):
-                    new_img[ii:ii+16,jj:jj+16] = np.transpose(np.reshape(img[:, count],[16,16]))
-                    count = count+1
-    return new_img
-
-def l2_normalize(inputs):
-    [batch_size, dim] = inputs.shape
-    inputs2 = torch.mul(inputs, inputs)
-    norm2 = torch.sum(inputs2, 1)
-    root_inv = torch.rsqrt(norm2)
-    tmp_var1 = root_inv.expand(dim,batch_size)
-    tmp_var2 = torch.t(tmp_var1)
-    nml_inputs = torch.mul(inputs, tmp_var2)
-    return nml_inputs
-
-def l2_col_normalize(inputs):
-    [dim1, dim2] = inputs.shape
-    inputs2 = np.multiply(inputs, inputs)
-    norm2 = np.sum(inputs2, 0)
-    root = np.sqrt(norm2)
-    root_inv = 1/root
-    tmp_var1 = np.tile(root_inv,dim1)
-    tmp_var2 = tmp_var1.reshape(dim1, dim2)
-    nml_inputs = np.multiply(inputs, tmp_var2)
-    return nml_inputs
-
-def calc_PSNR(x1, x2):
-    x1 = x1 * 255.0
-    x2 = x2 * 255.0
-    mse = F.mse_loss(x1, x2)
-    psnr = -10 * torch.log10(mse) + torch.tensor(48.131)
-    return psnr
 
 def dual_gap(x, alpha):
     out = F.softplus(x - alpha) + F.softplus(- x - alpha)
@@ -380,7 +284,7 @@ device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
 m, d, n = 250, 500, 10000
 # n_test = 1024 if 'lena' in test_file or 'fake' in test_file else 256
 n_test = 1000
-batch_size = 100
+batch_size = 20
 
 use_cuda = torch.cuda.is_available()
 print('==>>> use cuda' if use_cuda else '==>>> use cpu')
@@ -448,12 +352,14 @@ if objective == 'NMSE':
     mse_e = torch.zeros(K).cuda()
 elif objective == 'L1L1':
     l1l1_values = torch.zeros(K).cuda()
-elif objective == 'LASSO':
-    lasso_values = torch.zeros(K).cuda()
-elif objective == 'LASSO-ALL':
-    lasso_values = torch.zeros(n_test, K).cuda()
 elif objective == 'S-L2':
     sl2_values = torch.zeros(K).cuda()
+elif objective == 'Normalized-L1L1':
+    normalized_l1l1_values = torch.zeros(K).cuda()
+elif objective == 'GT':
+    gt_values = torch.zeros(K).cuda()
+elif objective == 'Normalized-GT':
+    normalized_gt_values = torch.zeros(K).cuda()
 else:
     raise NotImplementedError('objective `{}` not supported'.format(objective))
 
@@ -465,42 +371,66 @@ for j in range(n_test//batch_size):
     input_bs_var = torch.from_numpy(input_bs).cuda()
     with torch.no_grad():
         if use_learned and use_safeguard:
-            Z, E, L, T, count = model(input_bs_var, use_learned, use_safeguard, continued)
+            Z, E, L, count = model(input_bs_var, use_learned, use_safeguard, continued)
         else:
-            Z, E, L, T = model(input_bs_var, use_learned, use_safeguard, continued)
+            Z, E, L = model(input_bs_var, use_learned, use_safeguard, continued)
+        if 'normalized' in objective.lower() or 'gt' in objective.lower():
+            Zp, Ep, Lp = model(input_bs_var, False, False, False, K=2000)
 
     Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
 
     for jj in range(K):
+
         with torch.no_grad():
+
             if objective == 'NMSE':
                 mse_z[jj] = mse_z[jj] + torch.sum((Z_label_bs - Z[jj])**2.0)
                 mse_e[jj] = mse_e[jj] + torch.sum((E_label_bs - E[jj])**2.0)
+
             elif objective == 'L1L1':
                 l1l1_values[jj] = l1l1_values[jj] + (
                     alpha * torch.sum(torch.abs(Z[jj])) +
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
                 )
+
+            elif objective == 'Normalized-L1L1':
+                l1l1_value = (
+                    alpha * torch.sum(torch.abs(Z[jj]), dim=0) +
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])), dim=0)
+                )
+                gt_l1l1_value = (
+                    alpha * torch.sum(torch.abs(Zp[-1]), dim=0) +
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Zp[-1])), dim=0)
+                )
+                # print(l1l1_value)
+                # print(gt_l1l1_value)
+                normalized_l1l1_values[jj] += (torch.abs(l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
+
+            elif objective == 'GT':
+                gt_values[jj] += (
+                    torch.sum((Z[jj] - Zp[-1])**2.0) +
+                    torch.sum((E[jj] - Ep[-1])**2.0)
+                )
+
+            elif objective == 'Normalized-GT':
+                gt_value = (
+                    torch.sum((Z[jj] - Zp[-1])**2.0, dim=0) +
+                    torch.sum((E[jj] - Ep[-1])**2.0, dim=0)
+                )
+                gt_norm = (
+                    torch.sum(Zp[-1] ** 2.0, dim=0) +
+                    torch.sum(Ep[-1] ** 2.0, dim=0)
+                )
+                normalized_gt_values[jj] += (gt_value / gt_norm).sum()
+
             elif objective == 'S-L2':
-                # S_0 = self.S(self.Z0, self.E0, self.L0, T[-1], X, self.E0)
-                Ep = model.E0 if jj == 0 else E[jj-1]
-                # Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep, k=jj)
-                Sjj = model.S(Z[jj], E[jj], L[jj], T[jj+1], input_bs_var, Ep)
-                sl2_values[jj] = sl2_values[jj] + model.two_norm(Sjj).sum()
-            elif objective == 'LASSO':
-                lasso_values[jj] = lasso_values[jj] + (
-                    alpha * torch.sum(torch.abs(Z[jj])) +
-                    0.5 * torch.sum((input_bs_var - torch.mm(A_tensor, Z[jj])) ** 2.0)
-                )
-            elif objective == 'LASSO-ALL':
-                # print(Z[jj].shape)
-                # print(lasso_values.shape)
-                # print(lasso_values[j*batch_size:(j+1)*batch_size), jj].shape)
-                lasso_values[j*batch_size:(j+1)*batch_size, jj] += ( # lasso_values[jj] +
-                    alpha * torch.sum(torch.abs(Z[jj]), axis=0) +
-                    0.5 * torch.sum((input_bs_var - torch.mm(A_tensor, Z[jj])) ** 2.0, axis=0)
-                )
+                Snorm = model.Snorm_ELZ(E[jj], L[jj], Z[jj], input_bs_var)
+                sl2_values[jj] = sl2_values[jj] + Snorm.sum()
+
+            elif objective == 'Normalized-DGAP':
+                normalized_dgap = torch.zeros(K).cuda()
+
         if jj < layers and use_learned and use_safeguard:
             sg_count[jj] += count[jj]
 
@@ -539,28 +469,35 @@ elif objective == 'L1L1':
     print('******Best MSE: {:.3f}\n'.format(mse_value))
     # print(" ")
 
-elif objective == 'LASSO':
-    lasso_values = lasso_values / n_test
-    mse_value = 1000.0
-    for jj in range(K):
-        if(lasso_values[jj] < mse_value):
-            mse_value = lasso_values[jj].cpu().item()
-    print('LASSO values:')
-    print(', '.join(map(my_str, lasso_values)))
+elif objective == 'Normalized-L1L1':
+    normalized_l1l1_values /= n_test
+    print('Normalized L1L1 values:')
+    print(', '.join(map(my_str, normalized_l1l1_values)))
     # for k in range(K):
         # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
-    print('******Best Objective: {:.3f}\n'.format(mse_value))
     # print(" ")
 
-elif objective == 'LASSO-ALL':
-    npy_name = 'lasso-all-results-p{p}-mu{mu}-sigma{sigma}'.format(
-        p = args.p, mu=args.mu, sigma = args.sigma, data_type = args.data_type,
-    )
-    np.save(npy_name, lasso_values.detach().cpu().numpy())
-    print('results saved to {}'.format(npy_name))
-    # print('******Best Objective: {:.3f}\n'.format(mse_value))
+elif objective == 'GT':
+    gt_values /= n_test
+    print('GT values:')
+    print(', '.join(map(my_str, gt_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
+    # print(" ")
+
+elif objective == 'Normalized-GT':
+    normalized_gt_values /= n_test
+    print('Normalized GT values:')
+    print(', '.join(map(my_str, normalized_gt_values)))
+    # for k in range(K):
+        # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
+        # print('{:.3f}'.format(l1l1_values[k]), end=',')
+    # print(" ")
+    # print(" ")
 
 elif objective == 'S-L2':
     sl2_values /= n_test
