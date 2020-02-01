@@ -62,8 +62,8 @@ class DLADMMNet(nn.Module):
             self.beta3.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
-            self.active_para.append(nn.Parameter(1e-4 * torch.ones(1, 1, dtype=torch.float32)))
-            self.active_para1.append(nn.Parameter(1e-2 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para.append(nn.Parameter(0.1 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para1.append(nn.Parameter(0.1 * torch.ones(1, 1, dtype=torch.float32)))
             # self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         for m in self.modules():
@@ -130,6 +130,7 @@ if __name__ == '__main__':
     layer_decay = 0.3
     max_epochs = 10000
     num_stages = 3
+    best_wait = 5
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
     use_cuda = torch.cuda.is_available()
@@ -192,8 +193,8 @@ if __name__ == '__main__':
 
                     if loss_fn.lower() == 'l1l1':
                         loss = (
-                            alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
-                            torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
+                            alpha * torch.sum(torch.abs(Z[-1]), dim=0).mean() +
+                            torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[-1])), dim=0).mean()
                         )
                     else:
                         raise NotImplementedError('Specified loss function {} not implemented yet'.format(loss_fn))
@@ -201,16 +202,19 @@ if __name__ == '__main__':
                     loss.backward()
                     # gradient post-processing
                     if l > 1:
+                        if s == 0:
+                            model.fc.weight.grad *= 0.0
                         for k in range(l-2,-1,-1):
                             # k = l-2, ..., 0
+                            # print(model.beta1[k].grad, model.ss1[k].grad, model.active_para[k].grad)
                             model.beta1[k].grad *= layer_decay ** (l - k - 1) # (l-2) - k + 1
                             model.ss1[k].grad *= layer_decay ** (l - k - 1)
-                            model.active_para[k] *= layer_decay ** (l - k - 1)
+                            model.active_para[k].grad *= layer_decay ** (l - k - 1)
                             if k < l - 2:
-                                model.beta2[k] *= layer_decay ** (l - k - 2)
-                                model.beta3[k] *= layer_decay ** (l - k - 2)
-                                model.ss2[k] *= layer_decay ** (l - k - 2)
-                                model.active_para1[k] *= layer_decay ** (l - k - 2)
+                                model.beta2[k].grad *= layer_decay ** (l - k - 2)
+                                model.beta3[k].grad *= layer_decay ** (l - k - 2)
+                                model.ss2[k].grad *= layer_decay ** (l - k - 2)
+                                model.active_para1[k].grad *= layer_decay ** (l - k - 2)
                     optimizer.step()
 
                 l1l1_value = 0.0
@@ -221,20 +225,19 @@ if __name__ == '__main__':
                     with torch.no_grad():
                         Z, E, L = model(input_bs_var, l)
 
-                    for jj in range(layers):
                         l1l1_value += (
-                            alpha * torch.sum(torch.abs(Z[jj])) +
-                            torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])))
-                        )
+                            alpha * torch.sum(torch.abs(Z[-1])) +
+                            torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[-1])))
+                        ).detach().cpu().item()
 
                 l1l1_value /= n_test
                 if l1l1_value < best_l1l1_value:
                     best_l1l1_value = l1l1_value
                     best_epoch = epoch
                 print(
-                    '==>> layer {layer}\tstage {stage}\tepoch {epoch}\t'
-                    'obj = {obj} (best obj = {best_obj} at epoch {best_epoch})'.format(
-                        layer=l, stage=s+1, epoch=epoch=1,
+                    '==>> layer {layer}\tstage {stage}\tepoch {epoch:4d}\t'
+                    'obj = {obj:.6f} (best obj = {best_obj:.6f} at epoch {best_epoch:4d})'.format(
+                        layer=l, stage=s+1, epoch=epoch+1,
                         obj=l1l1_value, best_obj=best_l1l1_value, best_epoch=best_epoch+1)
                 )
                 if epoch > best_epoch + best_wait:
