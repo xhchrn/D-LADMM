@@ -12,6 +12,23 @@ import scipy.io as sio
 import scipy.misc
 from math import sqrt
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Test LADMM with synthetic data')
+parser.add_argument('-lf', '--loss-fn', type=str, default='L1L1', help='loss function used for training')
+parser.add_argument('-lr', '--learning-rate', type=float, default=0.005, help='initial learning rate')
+parser.add_argument('-bs', '--batch-size', type=int, default=25, help='batch size for training')
+parser.add_argument('-a', '--alpha', type=float, default=0.001, help='hyper-param in the objective')
+parser.add_argument('-g', '--gamma', type=float, default=0.2, help='learning rate decay rate per 10 epochs')
+# parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian dist')
+# parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
+# parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
+# parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
+# parser.add_argument('--continued', action='store_true', help='continue LSKM with KM')
+# parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
+
+args = parser.parse_args()
+
 
 ## network definition
 class DLADMMNet(nn.Module):
@@ -33,19 +50,21 @@ class DLADMMNet(nn.Module):
         self.beta1 = nn.ParameterList()
         self.beta2 = nn.ParameterList()
         self.beta3 = nn.ParameterList()
+        self.ss1 = nn.ParameterList()
         self.ss2 = nn.ParameterList()
         self.active_para = nn.ParameterList()
         self.active_para1 = nn.ParameterList()
-        self.fc = nn.ModuleList()
+        self.fc = nn.Linear(self.m, self.d, bias = False)
 
         for k in range(self.layers):
             self.beta1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.beta2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.beta3.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
+            self.ss1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.active_para.append(nn.Parameter(0.2 * torch.ones(1, 1, dtype=torch.float32)))
             self.active_para1.append(nn.Parameter(0.8 * torch.ones(1, 1, dtype=torch.float32)))
-            self.fc.append(nn.Linear(self.m, self.d, bias = False))
+            # self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         for m in self.modules():
             if isinstance(m, nn.Linear):
@@ -74,7 +93,7 @@ class DLADMMNet(nn.Module):
                 # Step 1
                 T.append(self.A.mm(self.Z0) + self.E0 - X)
                 Var.append(self.L0 + self.beta1[k].mul(T[-1]))
-                Z.append(self.self_active(self.Z0 - self.fc[k](Var[-1].t()).t(), self.active_para[k]))
+                Z.append(self.self_active(self.Z0 - self.ss1[k] * self.fc(Var[-1].t()).t(), self.active_para[k]))
                 # Step 2 NOTE: my modification
                 VVar = self.L0 + self.beta2[k] * (self.A.mm(Z[-1]) + self.E0 - X)
                 E.append(self.self_active(self.E0 - self.ss2[k].mul(VVar), self.active_para1[k]))
@@ -92,7 +111,7 @@ class DLADMMNet(nn.Module):
             else :
                 # Step 1
                 Var.append(L[-1] + self.beta1[k].mul(T[-1]))
-                Z.append(self.self_active(Z[-1] - self.fc[k](Var[-1].t()).t(), self.active_para[k]))
+                Z.append(self.self_active(Z[-1] - self.ss1[k] * self.fc(Var[-1].t()).t(), self.active_para[k]))
                 # Step 2 NOTE: my modification
                 VVar = L[-1] + self.beta2[k] * (self.A.mm(Z[-1]) + E[-1] - X)
                 E.append(self.self_active(E[-1] - self.ss2[k].mul(VVar), self.active_para1[k]))
@@ -111,7 +130,7 @@ class DLADMMNet(nn.Module):
 
 
     def name(self):
-        return "DLADMMNet"
+        return "DLADMMNet_scalar_tied"
 
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
@@ -179,9 +198,9 @@ if __name__ == '__main__':
     device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
     m, d, n = 250, 500, 10000
     n_test = 1000
-    batch_size = 25
+    batch_size = args.batch_size
     layers = 20
-    alpha = 0.001
+    alpha = args.alpha
     num_epoch = 100
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
@@ -227,9 +246,10 @@ if __name__ == '__main__':
     # psnr_value = 0
     # best_pic = np.zeros(shape=(256,1024))
     # optimizer = None
-    learning_rate =  0.01
+    loss_fn = args.loss_fn
+    learning_rate = args.learning_rate
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    gamma = 0.2
+    gamma = args.gamma
     scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40,50,60,70,80,90], gamma=gamma)
     # loss_start_layer = layers - 1
     loss_start_layer = 0
@@ -268,11 +288,14 @@ if __name__ == '__main__':
                 # else:
                     # sl2_loss = 0.0
 
-                loss.append(
-                    alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
-                    # torch.mean(torch.abs(E[k]))
-                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
-                )
+                if loss_fn.lower() == 'l1l1':
+                    loss.append(
+                        alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
+                        # torch.mean(torch.abs(E[k]))
+                        torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
+                    )
+                else:
+                    raise NotImplementedError('Specified loss function {} not implemented yet'.format(loss_fn))
 
                 decay = 0.6 ** epoch if k < layers - 1 else 1.0
                 total_loss += loss[-1] * decay
@@ -290,8 +313,8 @@ if __name__ == '__main__':
 
         torch.save(
             model.state_dict(),
-            '{}_l1l1_scalar_alpha{}_ls{}_bs{}_gamma{}.pth'.format(
-                model.name(), alpha, learning_rate, batch_size, gamma))
+            '{}_{}_alpha{}_ls{}_bs{}_gamma{}.pth'.format(
+                model.name(), loss_fn.lower(), alpha, learning_rate, batch_size, gamma))
 
         print('---------------------------testing---------------------------')
         # model.eval()
