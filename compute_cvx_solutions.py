@@ -15,6 +15,7 @@ parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian 
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
+parser.add_argument('--split', type=str, default='test', help='calculate train or test split')
 parser.add_argument('--batch-size', type=int, default=20, help='batch size')
 
 def loss_l1(X):
@@ -29,6 +30,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     alpha = args.alpha
+    split = args.split
     batch_size = args.batch_size
 
     # test data file
@@ -44,18 +46,18 @@ if __name__ == '__main__':
         os.makedirs('cvx-solutions')
     if not os.path.isdir('cvx-solutions/logs'):
         os.makedirs('cvx-solutions/logs')
-    save_file = os.path.join('cvx-solutions', '{}-alpha{}.npy'.format(test_file[:-4], alpha))
-    log_file = os.path.join('cvx-solutions/logs', '{}-alpha{}.log'.format(test_file[:-4], alpha))
+    save_file = os.path.join('cvx-solutions', '{}-alpha{}-{}.npy'.format(test_file[:-4], alpha, split))
+    log_file = os.path.join('cvx-solutions/logs', '{}-alpha{}-{}.log'.format(test_file[:-4], alpha, split))
     print = setup_logger(log_file)
 
     syn_data = sio.loadmat(test_file)
     A = syn_data['A'].astype(np.float32)
     m, n = A.shape
 
-    X = syn_data['test_x'].astype(np.float32).T # (m, #samples)
-    Z = syn_data['test_z'].astype(np.float32).T # (n, #samples)
-    E = syn_data['test_e'].astype(np.float32).T # (m, #samples)
-    n_test = X.shape[1]
+    X = syn_data[split + 'x'].astype(np.float32).T # (m, #samples)
+    Z = syn_data[split + 'z'].astype(np.float32).T # (n, #samples)
+    E = syn_data[split + 'e'].astype(np.float32).T # (m, #samples)
+    n_samples = X.shape[1]
 
     Z_var = cp.Variable((n,batch_size))
     X_param = cp.Parameter((m,batch_size))
@@ -64,11 +66,11 @@ if __name__ == '__main__':
 
     Z_sol = np.zeros(Z.shape, dtype=np.float32)
 
-    for i in range(n_test // batch_size):
+    for i in range(n_samples // batch_size):
 
         X_param.value = X[:, i*batch_size:(i+1)*batch_size]
         out = problem.solve()
-        print('[{:2d}/{:2d}]\t{}'.format(i+1, n_test//batch_size, out))
+        print('[{:2d}/{:2d}]\t{}'.format(i+1, n_samples//batch_size, out))
         Z_sol[:, i*batch_size:(i+1)*batch_size] = Z_var.value
 
     np.save(save_file, Z_sol)
