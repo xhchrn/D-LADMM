@@ -167,10 +167,10 @@ if __name__ == '__main__':
     device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
     m, d, n = 250, 500, 10000
     n_test = 1000
-    batch_size = 200
+    batch_size = 25
     layers = 20
     alpha = 0.001
-    num_epoch = 30
+    num_epoch = 100
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
     use_cuda = torch.cuda.is_available()
@@ -217,7 +217,8 @@ if __name__ == '__main__':
     # optimizer = None
     learning_rate =  0.005
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40], gamma=0.2)
+    gamma=0.2
+    scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40,50,60,70,80,90], gamma=gamma)
     # loss_start_layer = layers - 1
     loss_start_layer = 0
 
@@ -276,7 +277,7 @@ if __name__ == '__main__':
 
         # del loss, total_loss
 
-        torch.save(model.state_dict(), model.name()+'_l1l1_scalar_z0_alpha{}.pth'.format(alpha))
+        torch.save(model.state_dict(), model.name()+'_l1l1_scalar_z0_alpha{}_bs{}_gamma.pth'.format(alpha, batch_size, gamma))
 
         print('---------------------------testing---------------------------')
         # model.eval()
