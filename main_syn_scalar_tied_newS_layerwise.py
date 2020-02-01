@@ -150,7 +150,7 @@ if __name__ == '__main__':
     X_ts = X_ts.T
 
     if loss_fn.lower() == 'gt':
-        label = sio.loadmat(os.path.join(
+        label = np.load(os.path.join(
             'cvx-solutions',
             'syn_data_p0.1_mu0.0_s1.0-dual-alpha{}-eps0.0001-train.npz'.format(alpha)))
         Z_label = label['Z']
