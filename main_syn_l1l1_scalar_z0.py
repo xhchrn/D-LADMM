@@ -215,7 +215,7 @@ if __name__ == '__main__':
     # psnr_value = 0
     # best_pic = np.zeros(shape=(256,1024))
     # optimizer = None
-    learning_rate =  0.005
+    learning_rate =  0.01
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     gamma=0.2
     scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40,50,60,70,80,90], gamma=gamma)
@@ -277,7 +277,7 @@ if __name__ == '__main__':
 
         # del loss, total_loss
 
-        torch.save(model.state_dict(), model.name()+'_l1l1_scalar_z0_alpha{}_bs{}_gamma.pth'.format(alpha, batch_size, gamma))
+        torch.save(model.state_dict(), model.name()+'_l1l1_scalar_z0_alpha{}_lr{}_bs{}_gamma.pth'.format(alpha, learning_rate, batch_size, gamma))
 
         print('---------------------------testing---------------------------')
         # model.eval()
