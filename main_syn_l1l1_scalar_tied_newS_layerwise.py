@@ -149,6 +149,14 @@ if __name__ == '__main__':
     X_ts = syn_data['test_x'].astype(np.float32)
     X_ts = X_ts.T
 
+    if loss_fn.lower() == 'gt':
+        label = sio.loadmat(os.path.join(
+            'cvx-solutions',
+            'syn_data_p0.1_mu0.0_s1.0-dual-alpha{}-eps0.0001-train.npz'.format(alpha)))
+        Z_label = label['Z']
+        E_label = label['E']
+        L_label = label['L']
+
     # init parameters
     Z0 = 1.0 /d * torch.rand(d, batch_size, dtype=torch.float32)
     E0 = torch.zeros(m, batch_size, dtype=torch.float32)
@@ -195,6 +203,13 @@ if __name__ == '__main__':
                         loss = (
                             alpha * torch.sum(torch.abs(Z[-1]), dim=0).mean() +
                             torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[-1])), dim=0).mean()
+                        )
+                    elif loss_fn.lower() == 'gt':
+                        Z_label_bs = torch.from_numpy(Z_label[:, address]).cuda()
+                        E_label_bs = torch.from_numpy(E_label[:, address]).cuda()
+                        loss = (
+                            torch.sum((Z[-1] - Z_label_bs)**2.0, dim=0).mean() +
+                            torch.sum((E[-1] - E_label_bs)**2.0, dim=0).mean()
                         )
                     else:
                         raise NotImplementedError('Specified loss function {} not implemented yet'.format(loss_fn))
