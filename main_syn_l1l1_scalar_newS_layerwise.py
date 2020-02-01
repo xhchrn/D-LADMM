@@ -206,7 +206,7 @@ if __name__ == '__main__':
                             # k = l-2, ..., 0
                             # print(model.beta1[k].grad, model.ss1[k].grad, model.active_para[k].grad)
                             model.beta1[k].grad *= layer_decay ** (l - k - 1) # (l-2) - k + 1
-                            model.fc[k].grad *= layer_decay ** (l - k - 1)
+                            model.fc[k].weight.grad *= layer_decay ** (l - k - 1)
                             model.active_para[k].grad *= layer_decay ** (l - k - 1)
                             if k < l - 2:
                                 model.beta2[k].grad *= layer_decay ** (l - k - 2)
