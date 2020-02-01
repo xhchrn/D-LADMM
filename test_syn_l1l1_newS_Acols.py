@@ -26,7 +26,7 @@ parser.add_argument('--mu-k-param', type=float, default=0.0, help='mu_k update p
 parser.add_argument('--model-file', type=str, default='DLADMMNet.pth', help='L2O model to be loaded and tested')
 parser.add_argument('--layers', type=int, default=20, help='number of layers of the L2O model')
 parser.add_argument('--objective', type=str, default='NMSE', help='objective for observations')
-parser.add_argument('--cols', type=int, default=20, help='num of changed columns in A')
+parser.add_argument('-c', '--cols', type=int, default=20, help='num of changed columns in A')
 parser.add_argument('-p', '--p', type=float, default=0.2, help='p in the Bernoulli distribution')
 parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian dist')
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
@@ -45,11 +45,15 @@ alpha = args.alpha
 delta = args.delta
 mu_k_method = args.mu_k_method
 mu_k_param  = args.mu_k_param
-# test_file = 'syn_data_p{}_s{}.mat'.format(args.p, args.sigma) if args.mu == 0.0 \
-    # else 'syn_data_p{}_mu{}_s{}.mat'.format(args.p, args.mu, args.sigma)
-test_file = 'syn_data_cols{}_p{}_mu{}_s{}.mat'.format(args.cols, args.p, args.mu, args.sigma) if args.data_type == 'gaussian' \
-    else 'syn_data_cols{}_p{}_mu{}_s{}_{}.mat'.format(args.cols, args.p, args.mu, args.sigma, args.data_type)
+
+# test data file
+test_file = 'syn_data'
+test_file += '_cols{}'.format(args.cols) if args.cols > 0 else ''
+test_file += '_p{}_mu{}_s{}'.format(args.p, args.mu, args.sigma)
+test_file += '_{}'.format(args.data_type) if args.data_type != 'gaussian' else ''
+test_file += '.mat'
 print('using testing data file {}'.format(test_file))
+
 model_file = args.model_file
 layers = args.layers
 K = layers if (not continued and (use_learned or use_safeguard)) else num_iter
@@ -314,9 +318,11 @@ Z_ts = Z_ts.T
 E_ts = syn_data['test_e'].astype(np.float32)
 E_ts = E_ts.T
 
-# X_gt = syn_data['gt_x'].astype(np.float32)
-# X_gt = X_gt.T
-
+# Load cvx solutions
+if 'normalized' in objective.lower() or 'gt' in objective.lower():
+    cvx_solutions_file = os.path.join(
+        'cvx-solutions', '{}-alpha{}.npy'.format(test_file[:-4], alpha))
+    Zp = np.load(cvx_solutions_file)
 
 # init parameters
 Z0 = 1.0 /d * torch.rand(d, batch_size, dtype=torch.float32)
@@ -374,11 +380,11 @@ for j in range(n_test//batch_size):
             Z, E, L, count = model(input_bs_var, use_learned, use_safeguard, continued)
         else:
             Z, E, L = model(input_bs_var, use_learned, use_safeguard, continued)
-        if 'normalized' in objective.lower() or 'gt' in objective.lower():
-            Zp, Ep, Lp = model(input_bs_var, False, False, False, K=2000)
 
     Z_label_bs = torch.from_numpy(Z_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
     E_label_bs = torch.from_numpy(E_ts[:, j*batch_size:(j+1)*batch_size]).cuda()
+    if 'normalized' in objective.lower() or 'gt' in objective.lower():
+        Zp_bs = torch.from_numpy(Zp[:, j*batch_size:(j+1)*batch_size]).cuda()
 
     for jj in range(K):
 
@@ -400,11 +406,9 @@ for j in range(n_test//batch_size):
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[jj])), dim=0)
                 )
                 gt_l1l1_value = (
-                    alpha * torch.sum(torch.abs(Zp[-1]), dim=0) +
-                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Zp[-1])), dim=0)
+                    alpha * torch.sum(torch.abs(Zp_bs), dim=0) +
+                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Zp_bs)), dim=0)
                 )
-                # print(l1l1_value)
-                # print(gt_l1l1_value)
                 normalized_l1l1_values[jj] += (torch.abs(l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
 
             elif objective == 'GT':
