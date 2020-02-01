@@ -267,6 +267,11 @@ class DLADMMNet(nn.Module):
                 L.append(Ln_KM)
                 Z.append(Zn_KM)
 
+        # Add init variables in Z, E, L lists
+        Z.insert(0, self.Z0)
+        E.insert(0, self.E0)
+        L.insert(0, self.L0)
+
         if return_cnt:
             return Z, E, L, sg_count
         else:
@@ -354,18 +359,18 @@ print('---------------------------testing---------------------------')
 model.eval()
 # mse_value = torch.zeros(layers).cuda()
 if objective == 'NMSE':
-    mse_z = torch.zeros(K).cuda()
-    mse_e = torch.zeros(K).cuda()
+    mse_z = torch.zeros(K+1).cuda()
+    mse_e = torch.zeros(K+1).cuda()
 elif objective == 'L1L1':
-    l1l1_values = torch.zeros(K).cuda()
+    l1l1_values = torch.zeros(K+1).cuda()
 elif objective == 'S-L2':
-    sl2_values = torch.zeros(K).cuda()
+    sl2_values = torch.zeros(K+1).cuda()
 elif objective == 'Normalized-L1L1':
-    normalized_l1l1_values = torch.zeros(K).cuda()
+    normalized_l1l1_values = torch.zeros(K+1).cuda()
 elif objective == 'GT':
-    gt_values = torch.zeros(K).cuda()
+    gt_values = torch.zeros(K+1).cuda()
 elif objective == 'Normalized-GT':
-    normalized_gt_values = torch.zeros(K).cuda()
+    normalized_gt_values = torch.zeros(K+1).cuda()
 else:
     raise NotImplementedError('objective `{}` not supported'.format(objective))
 
@@ -386,7 +391,7 @@ for j in range(n_test//batch_size):
     if 'normalized' in objective.lower() or 'gt' in objective.lower():
         Zp_bs = torch.from_numpy(Zp[:, j*batch_size:(j+1)*batch_size]).cuda()
 
-    for jj in range(K):
+    for jj in range(K+1):
 
         with torch.no_grad():
 
@@ -409,7 +414,7 @@ for j in range(n_test//batch_size):
                     alpha * torch.sum(torch.abs(Zp_bs), dim=0) +
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Zp_bs)), dim=0)
                 )
-                normalized_l1l1_values[jj] += (torch.abs(l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
+                normalized_l1l1_values[jj] += (l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
 
             elif objective == 'GT':
                 gt_values[jj] += (
@@ -446,12 +451,12 @@ if objective == 'NMSE':
     nmse_denom_e = torch.sum(torch.from_numpy(E_ts).cuda() ** 2.0) / n_test
     nmse = 10 * torch.log10(mse_z / nmse_denom_z + mse_e / nmse_denom_e)
     nmse_value = 1000.0
-    for jj in range(K):
+    for jj in range(K+1):
         if(nmse[jj] < nmse_value):
             nmse_value = nmse[jj].cpu().item()
     print('NMSE values:')
     print(', '.join(map(my_str, nmse)))
-    # for k in range(K):
+    # for k in range(K+1):
         # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         # print('{:.3f}'.format(nmse[k]), end=',')
     # print(" ")
@@ -461,12 +466,12 @@ if objective == 'NMSE':
 elif objective == 'L1L1':
     l1l1_values = l1l1_values / n_test
     mse_value = 1000.0
-    for jj in range(K):
+    for jj in range(K+1):
         if(l1l1_values[jj] < mse_value):
             mse_value = l1l1_values[jj].cpu().item()
     print('MSE values:')
     print(', '.join(map(my_str, l1l1_values)))
-    # for k in range(K):
+    # for k in range(K+1):
         # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
@@ -477,7 +482,7 @@ elif objective == 'Normalized-L1L1':
     normalized_l1l1_values /= n_test
     print('Normalized L1L1 values:')
     print(', '.join(map(my_str, normalized_l1l1_values)))
-    # for k in range(K):
+    # for k in range(K+1):
         # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
@@ -487,7 +492,7 @@ elif objective == 'GT':
     gt_values /= n_test
     print('GT values:')
     print(', '.join(map(my_str, gt_values)))
-    # for k in range(K):
+    # for k in range(K+1):
         # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
@@ -497,7 +502,7 @@ elif objective == 'Normalized-GT':
     normalized_gt_values /= n_test
     print('Normalized GT values:')
     print(', '.join(map(my_str, normalized_gt_values)))
-    # for k in range(K):
+    # for k in range(K+1):
         # # print('PSNR{}:{:.3f}'.format(k+1, psnr[k]), end=' ')
         # print('{:.3f}'.format(l1l1_values[k]), end=',')
     # print(" ")
@@ -512,7 +517,7 @@ if use_learned and use_safeguard:
     sg_pct = sg_count / float(n_test)
     print("Sg Pcts:")
     print(', '.join(map(my_str, sg_pct)))
-    # for k in range(K):
+    # for k in range(K+1):
         # sg_pct = sg_count / float(n_test)
         # print('{:.3f}'.format(sg_pct[k]), end=',')
     # print(" ")
