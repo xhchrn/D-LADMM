@@ -173,15 +173,14 @@ if __name__ == '__main__':
         print('\n================ training layer {}'.format(l))
 
         for s in range(num_stages):
-            optimizer = optim.Adam(model.parameters(), lr=learning_rate * gamma**s)
+            lr = learning_rate * gamma**s
+            optimizer = optim.Adam(model.parameters(), lr=lr)
             best_l1l1_value = 1000.0
             best_epoch = -1
             layer_decay = 0.5 if s > 0 else 0.0
 
-            print('---- training layer {} stage {}'.format(l, s+1))
+            print('---- training layer {} stage {} with learning rate {}'.format(l, s+1, lr))
             for epoch in range(max_epochs):
-                print('---------------------------training---------------------------')
-                print('learning rate of this epoch {:.8f}'.format(learning_rate))
                 np.random.shuffle(index_loc)
                 for j in range(n//batch_size):
                     optimizer.zero_grad()
