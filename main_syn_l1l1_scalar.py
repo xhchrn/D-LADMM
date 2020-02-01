@@ -12,6 +12,23 @@ import scipy.io as sio
 import scipy.misc
 from math import sqrt
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Test LADMM with synthetic data')
+parser.add_argument('-lf', '--loss-fn', type=str, default='L1L1', help='loss function used for training')
+parser.add_argument('-lr', '--learning-rate', type=float, default=0.005, help='initial learning rate')
+parser.add_argument('-bs', '--batch-size', type=int, default=25, help='batch size for training')
+parser.add_argument('-a', '--alpha', type=float, default=0.001, help='hyper-param in the objective')
+parser.add_argument('-g', '--gamma', type=float, default=0.2, help='learning rate decay rate per 10 epochs')
+# parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian dist')
+# parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
+# parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
+# parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
+# parser.add_argument('--continued', action='store_true', help='continue LSKM with KM')
+# parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
+
+args = parser.parse_args()
+
 
 ## network definition
 class DLADMMNet(nn.Module):
@@ -111,7 +128,7 @@ class DLADMMNet(nn.Module):
 
 
     def name(self):
-        return "DLADMMNet"
+        return "DLADMMNet_scalar"
 
 
     def KM(self, Zk, Ek, Lk, Tk, X, **kwargs):
@@ -179,9 +196,9 @@ if __name__ == '__main__':
     device_ids = list(range(len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))))
     m, d, n = 250, 500, 10000
     n_test = 1000
-    batch_size = 25
+    batch_size = args.batch_size
     layers = 20
-    alpha = 0.001
+    alpha = args.alpha
     num_epoch = 100
     lam = 0.0001 # lambda that reweiht the L1-L1 objective and squared L2 norm of S operator
 
@@ -227,9 +244,10 @@ if __name__ == '__main__':
     # psnr_value = 0
     # best_pic = np.zeros(shape=(256,1024))
     # optimizer = None
-    learning_rate =  0.01
+    loss_fn = args.loss_fn
+    learning_rate = args.learning_rate
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    gamma = 0.2
+    gamma = args.gamma
     scheduler = MultiStepLR(optimizer, milestones=[10,20,30,40,50,60,70,80,90], gamma=gamma)
     # loss_start_layer = layers - 1
     loss_start_layer = 0
@@ -268,11 +286,14 @@ if __name__ == '__main__':
                 # else:
                     # sl2_loss = 0.0
 
-                loss.append(
-                    alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
-                    # torch.mean(torch.abs(E[k]))
-                    torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
-                )
+                if loss_fn.lower() == 'l1l1':
+                    loss.append(
+                        alpha * torch.sum(torch.abs(Z[k]), dim=0).mean() +
+                        # torch.mean(torch.abs(E[k]))
+                        torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Z[k])), dim=0).mean()
+                    )
+                else:
+                    raise NotImplementedError('Specified loss function {} not implemented yet'.format(loss_fn))
 
                 decay = 0.6 ** epoch if k < layers - 1 else 1.0
                 total_loss += loss[-1] * decay
@@ -290,8 +311,8 @@ if __name__ == '__main__':
 
         torch.save(
             model.state_dict(),
-            '{}_l1l1_scalar_alpha{}_ls{}_bs{}_gamma{}.pth'.format(
-                model.name(), alpha, learning_rate, batch_size, gamma))
+            '{}_{}_alpha{}_ls{}_bs{}_gamma{}.pth'.format(
+                model.name(), loss_fn.lower(), alpha, learning_rate, batch_size, gamma))
 
         print('---------------------------testing---------------------------')
         # model.eval()

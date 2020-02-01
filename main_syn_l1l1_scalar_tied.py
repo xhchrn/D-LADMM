@@ -62,8 +62,8 @@ class DLADMMNet(nn.Module):
             self.beta3.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
-            self.active_para.append(nn.Parameter(0.2 * torch.ones(1, 1, dtype=torch.float32)))
-            self.active_para1.append(nn.Parameter(0.8 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para.append(nn.Parameter(1e-4 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para1.append(nn.Parameter(1e-2 * torch.ones(1, 1, dtype=torch.float32)))
             # self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         for m in self.modules():
@@ -297,7 +297,7 @@ if __name__ == '__main__':
                 else:
                     raise NotImplementedError('Specified loss function {} not implemented yet'.format(loss_fn))
 
-                decay = 0.6 ** epoch if k < layers - 1 else 1.0
+                decay = 0.9 ** epoch if k < layers - 1 else 1.0
                 total_loss += loss[-1] * decay
 
             total_loss.backward()
