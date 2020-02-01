@@ -414,7 +414,7 @@ for j in range(n_test//batch_size):
                     alpha * torch.sum(torch.abs(Zp_bs), dim=0) +
                     torch.sum(torch.abs(input_bs_var - torch.mm(A_tensor, Zp_bs)), dim=0)
                 )
-                normalized_l1l1_values[jj] += (l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
+                normalized_l1l1_values[jj] += ((l1l1_value - gt_l1l1_value) / gt_l1l1_value).sum()
 
             elif objective == 'GT':
                 gt_values[jj] += (
