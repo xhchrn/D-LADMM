@@ -32,6 +32,7 @@ parser.add_argument('-m', '--mu', type=float, default=0.0, help='mu of Gaussian 
 parser.add_argument('-s', '--sigma', type=float, default=2.0, help='sigma of Gaussian dist')
 parser.add_argument('--num-iter', type=int, default=200, help='number of iterations for KM algorithm')
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
+parser.add_argument('-e', '--eps', type=float, default=0.0001, help='hyper-param in the augmented objective')
 parser.add_argument('--continued', action='store_true', help='continue LSKM with KM')
 parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
 parser.add_argument('-ds', '--dual-solution', action='store_true', help='use dual solution for normalized objective')
@@ -65,8 +66,8 @@ if not os.path.isdir('newS-test-logs'):
     os.makedirs('newS-test-logs')
 log_file = os.path.join(
     'newS-test-logs',
-    'scalar-{obj}-results-{alg}{continued}-cols{cols}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
-        obj = objective.lower(),
+    'scalar-{obj}-alpha{alpha}-results-{alg}{continued}-cols{cols}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
+        obj = objective.lower(), alpha=alpha,
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
         continued = '-continued{}'.format(num_iter) if continued else '',
         cols=args.cols, p = args.p, mu=args.mu, sigma = args.sigma, data_type = args.data_type,
@@ -331,7 +332,7 @@ E_ts = E_ts.T
 if 'normalized' in objective.lower() or 'gt' in objective.lower():
     if args.dual_solution:
         cvx_solutions_file = os.path.join(
-            'cvx-solutions', '{}-dual-alpha{}-test.npz'.format(test_file[:-4], alpha))
+            'cvx-solutions', '{}-dual-alpha{}-eps{}-test.npz'.format(test_file[:-4], alpha, args.eps))
         npz_file = np.load(cvx_solutions_file)
         Zp = npz_file['Z']
         Ep = npz_file['E']
