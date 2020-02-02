@@ -62,8 +62,8 @@ class DLADMMNet(nn.Module):
             self.beta3.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
-            self.active_para.append(nn.Parameter(0.1 * torch.ones(1, 1, dtype=torch.float32)))
-            self.active_para1.append(nn.Parameter(0.1 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para.append(nn.Parameter(0.01 * torch.ones(1, 1, dtype=torch.float32)))
+            self.active_para1.append(nn.Parameter(0.01 * torch.ones(1, 1, dtype=torch.float32)))
             # self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         for m in self.modules():

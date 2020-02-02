@@ -97,10 +97,12 @@ class DLADMMNet(nn.Module):
         self.beta1 = nn.ParameterList()
         self.beta2 = nn.ParameterList()
         self.beta3 = nn.ParameterList()
+        self.ss1 = nn.ParameterList()
         self.ss2 = nn.ParameterList()
         self.active_para = nn.ParameterList()
         self.active_para1 = nn.ParameterList()
-        self.fc = nn.ModuleList()
+        # self.fc = nn.ModuleList()
+        self.fc = nn.Linear(self.m, self.d, bias = False)
 
         for k in range(self.layers):
             # self.beta1.append(nn.Parameter(torch.ones(self.m, self.batch_size, dtype=torch.float32)))
@@ -108,10 +110,11 @@ class DLADMMNet(nn.Module):
             self.beta1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.beta2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.beta3.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
+            self.ss1.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.ss2.append(nn.Parameter(torch.ones(1, 1, dtype=torch.float32)))
             self.active_para.append(nn.Parameter(0.2 * torch.ones(1, 1, dtype=torch.float32)))
             self.active_para1.append(nn.Parameter(0.8 * torch.ones(1, 1, dtype=torch.float32)))
-            self.fc.append(nn.Linear(self.m, self.d, bias = False))
+            # self.fc.append(nn.Linear(self.m, self.d, bias = False))
 
         # self.active_para = torch.tensor(0.025, dtype=torch.float32).cuda()
         # self.active_para1 = torch.tensor(0.06, dtype=torch.float32).cuda()
@@ -219,7 +222,7 @@ class DLADMMNet(nn.Module):
                     Ln_L2O = self.L0
                     # NOTE: `Varn` and `Zn` should be `Varnn` and `Znn`, to be strict
                     Varn_L2O = self.L0 + self.beta1[k].mul(T0)
-                    Zn_L2O = self.self_active(self.Z0 - self.fc[k](Varn_L2O.t()).t(), self.active_para[k])
+                    Zn_L2O = self.self_active(self.Z0 - self.ss1[k] * self.fc(Varn_L2O.t()).t(), self.active_para[k])
 
             else :
                 # Classic algorithm
@@ -236,7 +239,7 @@ class DLADMMNet(nn.Module):
                     # Z step:
                     # NOTE: `Varn` and `Zn` should be `Varnn` and `Znn`, to be strict
                     Varn_L2O = Ln_L2O + self.beta1[k].mul(Tn_L2O)
-                    Zn_L2O = self.self_active(Z[-1] - self.fc[k](Varn_L2O.t()).t(), self.active_para[k])
+                    Zn_L2O = self.self_active(Z[-1] - self.ss1[k] * self.fc(Varn_L2O.t()).t(), self.active_para[k])
 
             if use_safeguard:
                 # L2O + safegaurding

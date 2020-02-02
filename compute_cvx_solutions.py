@@ -54,9 +54,9 @@ if __name__ == '__main__':
     A = syn_data['A'].astype(np.float32)
     m, n = A.shape
 
-    X = syn_data[split + 'x'].astype(np.float32).T # (m, #samples)
-    Z = syn_data[split + 'z'].astype(np.float32).T # (n, #samples)
-    E = syn_data[split + 'e'].astype(np.float32).T # (m, #samples)
+    X = syn_data[split + '_x'].astype(np.float32).T # (m, #samples)
+    Z = syn_data[split + '_z'].astype(np.float32).T # (n, #samples)
+    E = syn_data[split + '_e'].astype(np.float32).T # (m, #samples)
     n_samples = X.shape[1]
 
     Z_var = cp.Variable((n,batch_size))
