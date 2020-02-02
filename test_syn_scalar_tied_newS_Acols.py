@@ -34,6 +34,7 @@ parser.add_argument('--num-iter', type=int, default=200, help='number of iterati
 parser.add_argument('-a', '--alpha', type=float, default=0.01, help='hyper-param in the objective')
 parser.add_argument('--continued', action='store_true', help='continue LSKM with KM')
 parser.add_argument('--data-type', type=str, default='gaussian', help='data type')
+parser.add_argument('-ds', '--dual-solution', action='store_true', help='use dual solution for normalized objective')
 
 args = parser.parse_args()
 
@@ -328,9 +329,17 @@ E_ts = E_ts.T
 
 # Load cvx solutions
 if 'normalized' in objective.lower() or 'gt' in objective.lower():
-    cvx_solutions_file = os.path.join(
-        'cvx-solutions', '{}-alpha{}-test.npy'.format(test_file[:-4], alpha))
-    Zp = np.load(cvx_solutions_file)
+    if args.dual_solution:
+        cvx_solutions_file = os.path.join(
+            'cvx-solutions', '{}-dual-alpha{}-test.npz'.format(test_file[:-4], alpha))
+        npz_file = np.load(cvx_solutions_file)
+        Zp = npz_file['Z']
+        Ep = npz_file['E']
+        Lp = npz_file['L']
+    else:
+        cvx_solutions_file = os.path.join(
+            'cvx-solutions', '{}-alpha{}-test.npy'.format(test_file[:-4], alpha))
+        Zp = np.load(cvx_solutions_file)
 
 # init parameters
 Z0 = 1.0 /d * torch.rand(d, batch_size, dtype=torch.float32)
