@@ -19,6 +19,7 @@ parser.add_argument('-l', '--layers', type=int, default=20, help='number of laye
 parser.add_argument('-i', '--interval', type=int, default=10, help='interval of each fc weight used')
 parser.add_argument('-lf', '--loss-fn', type=str, default='L1L1', help='loss function used for training')
 parser.add_argument('-lr', '--learning-rate', type=float, default=0.005, help='initial learning rate')
+parser.add_argument('-ld', '--layer-decay', type=float, default=0.5, help='layerwise lr decay rate')
 parser.add_argument('-bs', '--batch-size', type=int, default=25, help='batch size for training')
 parser.add_argument('-a', '--alpha', type=float, default=0.001, help='hyper-param in the objective')
 parser.add_argument('-g', '--gamma', type=float, default=0.2, help='learning rate decay rate per 10 epochs')
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     loss_fn = args.loss_fn
     learning_rate = args.learning_rate
     gamma = args.gamma
-    # layer_decay = 0.3
+    layer_decay = args.layer_decay
     max_epochs = 10000
     num_stages = 3
     best_wait = 5
@@ -191,7 +192,7 @@ if __name__ == '__main__':
             optimizer = optim.Adam(model.parameters(), lr=lr)
             best_l1l1_value = 1000.0
             best_epoch = -1
-            layer_decay = 0.5 if s > 0 else 0.0
+            ld = layer_decay if s > 0 else 0.0
 
             print('---- training layer {} stage {} with learning rate {}'.format(l, s+1, lr))
             for epoch in range(max_epochs):
@@ -224,20 +225,21 @@ if __name__ == '__main__':
                     if l > 1:
                         if s == 0:
                             for fc in model.fc:
-                                fc.weight.grad *= 0.0
+                                if fc.weight.grad is not None:
+                                    fc.weight.grad *= 0.0
                         # else:
                         #     model.fc.weight.grad *= layer_decay ** (l - 1)
                         for k in range(l-2,-1,-1):
                             # k = l-2, ..., 0
                             # print(model.beta1[k].grad, model.ss1[k].grad, model.active_para[k].grad)
-                            model.beta1[k].grad *= layer_decay ** (l - k - 1) # (l-2) - k + 1
-                            model.ss1[k].grad *= layer_decay ** (l - k - 1)
-                            model.active_para[k].grad *= layer_decay ** (l - k - 1)
+                            model.beta1[k].grad *= ld ** (l - k - 1) # (l-2) - k + 1
+                            model.ss1[k].grad *= ld ** (l - k - 1)
+                            model.active_para[k].grad *= ld ** (l - k - 1)
                             if k < l - 2:
-                                model.beta2[k].grad *= layer_decay ** (l - k - 2)
-                                model.beta3[k].grad *= layer_decay ** (l - k - 2)
-                                model.ss2[k].grad *= layer_decay ** (l - k - 2)
-                                model.active_para1[k].grad *= layer_decay ** (l - k - 2)
+                                model.beta2[k].grad *= ld ** (l - k - 2)
+                                model.beta3[k].grad *= ld ** (l - k - 2)
+                                model.ss2[k].grad *= ld ** (l - k - 2)
+                                model.active_para1[k].grad *= ld ** (l - k - 2)
                     optimizer.step()
 
                 l1l1_value = 0.0
