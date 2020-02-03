@@ -66,8 +66,8 @@ if not os.path.isdir('newS-test-logs'):
     os.makedirs('newS-test-logs')
 log_file = os.path.join(
     'newS-test-logs',
-    'scalar-{obj}-alpha{alpha}-results-{alg}{continued}-cols{cols}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
-        obj = objective.lower(), alpha=alpha,
+    'scalar-layers{layers}-{obj}-alpha{alpha}-results-{alg}{continued}-cols{cols}-p{p}-mu{mu}-sigma{sigma}-{data_type}-{delta}{method}{param}.txt'.format(
+        layers = layers, obj = objective.lower(), alpha=alpha,
         alg = 'lskm' if use_learned else 'km{}'.format(num_iter),
         continued = '-continued{}'.format(num_iter) if continued else '',
         cols=args.cols, p = args.p, mu=args.mu, sigma = args.sigma, data_type = args.data_type,

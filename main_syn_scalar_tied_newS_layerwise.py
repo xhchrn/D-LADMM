@@ -15,6 +15,7 @@ from math import sqrt
 import argparse
 
 parser = argparse.ArgumentParser(description='Test LADMM with synthetic data')
+parser.add_argument('-l', '--layers', type=int, default=20, help='number of layers')
 parser.add_argument('-lf', '--loss-fn', type=str, default='L1L1', help='loss function used for training')
 parser.add_argument('-lr', '--learning-rate', type=float, default=0.005, help='initial learning rate')
 parser.add_argument('-bs', '--batch-size', type=int, default=25, help='batch size for training')
@@ -122,12 +123,12 @@ if __name__ == '__main__':
     m, d, n = 250, 500, 10000
     n_test = 1000
     batch_size = args.batch_size
-    layers = 20
+    layers = args.layers
     alpha = args.alpha
     loss_fn = args.loss_fn
     learning_rate = args.learning_rate
     gamma = args.gamma
-    layer_decay = 0.3
+    # layer_decay = 0.3
     max_epochs = 10000
     num_stages = 3
     best_wait = 5
@@ -219,6 +220,8 @@ if __name__ == '__main__':
                     if l > 1:
                         if s == 0:
                             model.fc.weight.grad *= 0.0
+                        # else:
+                        #     model.fc.weight.grad *= layer_decay ** (l - 1)
                         for k in range(l-2,-1,-1):
                             # k = l-2, ..., 0
                             # print(model.beta1[k].grad, model.ss1[k].grad, model.active_para[k].grad)
@@ -260,8 +263,8 @@ if __name__ == '__main__':
 
             torch.save(
                 model.state_dict(),
-                '{}_{}_alpha{}_ls{}_bs{}_gamma{}.pth'.format(
-                    model.name(), loss_fn.lower(), alpha, learning_rate, batch_size, gamma))
+                '{}_layers{}_{}_alpha{}_ls{}_bs{}_gamma{}_ld{}.pth'.format(
+                    model.name(), layers, loss_fn.lower(), alpha, learning_rate, batch_size, gamma, layer_decay))
 
             torch.cuda.empty_cache()
 
