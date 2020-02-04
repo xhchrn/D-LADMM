@@ -224,9 +224,11 @@ if __name__ == '__main__':
                     # gradient post-processing
                     if l > 1:
                         if s == 0:
-                            for fc in model.fc:
-                                if fc.weight.grad is not None:
-                                    fc.weight.grad *= 0.0
+                            i_interval = (l-1) // interval
+                            for ii in range(i_interval):
+                                model.fc[ii].weight.grad *= 0.0
+                            if (l-1) % interval > 0:
+                                model.fc[i_interval].weight.grad *= 0.0
                         # else:
                         #     model.fc.weight.grad *= layer_decay ** (l - 1)
                         for k in range(l-2,-1,-1):
@@ -259,13 +261,20 @@ if __name__ == '__main__':
                 if l1l1_value < best_l1l1_value:
                     best_l1l1_value = l1l1_value
                     best_epoch = epoch
-                print(
-                    '==>> layer {layer}\tstage {stage}\tepoch {epoch:4d}\t'
-                    'obj = {obj:.6f} (best obj = {best_obj:.6f} at epoch {best_epoch:4d})'.format(
-                        layer=l, stage=s+1, epoch=epoch+1,
-                        obj=l1l1_value, best_obj=best_l1l1_value, best_epoch=best_epoch+1)
-                )
+                if epoch % 50 == 0:
+                    print(
+                        '==>> layer {layer}\tstage {stage}\tepoch {epoch:4d}\t'
+                        'obj = {obj:.6f} (best obj = {best_obj:.6f} at epoch {best_epoch:4d})'.format(
+                            layer=l, stage=s+1, epoch=epoch+1,
+                            obj=l1l1_value, best_obj=best_l1l1_value, best_epoch=best_epoch+1)
+                    )
                 if epoch > best_epoch + best_wait:
+                    print(
+                        '==>> layer {layer}\tstage {stage}\tepoch {epoch:4d}\t'
+                        'obj = {obj:.6f} (best obj = {best_obj:.6f} at epoch {best_epoch:4d})'.format(
+                            layer=l, stage=s+1, epoch=epoch+1,
+                            obj=l1l1_value, best_obj=best_l1l1_value, best_epoch=best_epoch+1)
+                    )
                     break
 
             torch.save(
